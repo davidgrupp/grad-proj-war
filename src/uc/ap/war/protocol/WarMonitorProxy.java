@@ -9,7 +9,6 @@ import java.net.UnknownHostException;
 import org.apache.log4j.Logger;
 
 import uc.ap.war.WarPlayer;
-import uc.ap.war.protocol.exp.NoCommandHandlerException;
 import uc.ap.war.protocol.exp.PlayerIdException;
 
 public class WarMonitorProxy {
@@ -27,19 +26,12 @@ public class WarMonitorProxy {
 		this.hdlr = cmdHandler;
 	}
 
-	// public void setCmdHandler(final RequiredCommandHandler cmdHandle) {
-	// this.cmdr = cmdHandle;
-	// }
-
 	public void dispatchMonitorDirectives() throws IOException,
 			PlayerIdException {
-		// if (this.cmdr == null) {
-		// throw new NoCommandHandlerException();
-		// }
 		for (MsgGroup mg = mgp.next(); mg != null; mg = mgp.next()) {
 			lastMsgGroup = mg;
 			final String resArg = mg.getResultArg();
-			if (resArg.startsWith("PASSWORD")) {
+			if (resArg.startsWith(CmdHelper.CMD_PWD)) {
 				this.hdlr.resultPwd();
 			}
 			switch (mg.getRequiredCmd()) {
@@ -54,6 +46,9 @@ public class WarMonitorProxy {
 				break;
 			case CmdHelper.CMD_ALIVE:
 				this.hdlr.requireAlive();
+				break;
+			case CmdHelper.CMD_QUIT:
+				this.hdlr.requireQuit();
 				break;
 			default:
 				log.debug("No command required by monitor, free form transaction begins...");

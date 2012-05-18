@@ -33,6 +33,7 @@ public class WarClientGUI extends JFrame {
 	static Logger log = Logger.getLogger(WarClientGUI.class);
 	private WarMonitorProxy mon;
 	private WarServer svr;
+	private Thread svrThread;
 	private JTextArea taLog;
 	private JTextField tfId;
 	private JComboBox<String> cbMonHost;
@@ -44,6 +45,7 @@ public class WarClientGUI extends JFrame {
 	private JTextField tfSvrHost;
 	private JTextField tfSvrPort;
 	private JButton btnSvrUp;
+	private JButton btnSvrDown;
 
 	public WarClientGUI() {
 		super.setPreferredSize(new Dimension(300, 300));
@@ -58,7 +60,7 @@ public class WarClientGUI extends JFrame {
 		super.add(taLog);
 		// ui control pane
 		final JPanel ctlPane = new JPanel();
-		ctlPane.setLayout(new GridLayout(5, 5));
+		ctlPane.setLayout(new GridLayout(0, 2));
 		super.add(ctlPane);
 
 		// monitor host
@@ -173,16 +175,27 @@ public class WarClientGUI extends JFrame {
 				});
 		ctlPane.add(tfSvrPort);
 
-		// button server
+		// button server up
 		btnSvrUp = new JButton("Server Up");
 		btnSvrUp.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				svr = new WarServer(WarPlayer.getPort());
-				new Thread(svr).start();
+				svrThread = new Thread(svr);
+				svrThread.start();
 			}
 		});
 		ctlPane.add(btnSvrUp);
+
+		// button server down
+		btnSvrDown = new JButton("Server Down");
+		btnSvrDown.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				svrThread.interrupt();
+			}
+		});
+		ctlPane.add(btnSvrDown);
 
 		// button host port
 		btnHostPort = new JButton("Host Port");
