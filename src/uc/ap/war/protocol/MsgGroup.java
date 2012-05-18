@@ -1,13 +1,15 @@
 package uc.ap.war.protocol;
 
 public class MsgGroup {
-	private String result;
+	private String resultArg;
+	private String resultStr;
 	private String cmdError;
 	private String requiredCmd;
 	private StringBuilder msgs;
 
 	MsgGroup() {
-		result = "";
+		resultArg = "";
+		resultStr = "";
 		cmdError = "";
 		requiredCmd = "";
 		msgs = new StringBuilder();
@@ -21,12 +23,20 @@ public class MsgGroup {
 		return this.msgs.toString();
 	}
 
-	public String getResult() {
-		return result;
+	public String getResultArg() {
+		return resultArg;
 	}
 
-	void setResult(String result) {
-		this.result = result;
+	void setResultArg(String arg) {
+		this.resultArg = arg;
+	}
+
+	public String getResultStr() {
+		return resultStr;
+	}
+
+	void setResultStr(String str) {
+		this.resultStr = str;
 	}
 
 	public String getCmdError() {

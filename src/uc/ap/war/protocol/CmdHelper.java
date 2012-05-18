@@ -6,6 +6,7 @@ public class CmdHelper {
 	public static final String CMD_PWD = "PASSWORD";
 	public static final String CMD_HP = "HOST_PORT";
 	public static final String CMD_ALIVE = "ALIVE";
+	private static final String CMD_QUIT = "QUIT";
 
 	public static String ident(final String id) {
 		return CMD_ID + " " + id;
@@ -23,5 +24,9 @@ public class CmdHelper {
 
 	public static String alive(final String cookie) {
 		return CMD_ALIVE + " " + cookie;
+	}
+
+	public static String quit() {
+		return CMD_QUIT;
 	}
 }

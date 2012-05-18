@@ -1,8 +1,11 @@
 package uc.ap.war;
 
+import org.apache.log4j.Logger;
+
 import uc.ap.war.protocol.exp.PlayerIdException;
 
 public class WarPlayer {
+	static Logger log = Logger.getLogger(WarPlayer.class);
 	private static String PW = "default_pw";
 	private static String NEW_PW = "";
 	private static String COOKIE = "";
@@ -14,6 +17,7 @@ public class WarPlayer {
 		synchronized (PW) {
 			PW = pw;
 		}
+		log.debug("password updated: " + pw);
 	}
 
 	public static void genNewPw() {
@@ -32,6 +36,7 @@ public class WarPlayer {
 		synchronized (COOKIE) {
 			COOKIE = cookie;
 		}
+		log.debug("cookie updated: " + cookie);
 	}
 
 	public static String getCookie() {
@@ -42,6 +47,7 @@ public class WarPlayer {
 		synchronized (ID) {
 			ID = id;
 		}
+		log.debug("id updated: " + id);
 	}
 
 	public static String getId() throws PlayerIdException {
@@ -55,6 +61,7 @@ public class WarPlayer {
 		synchronized (HOST) {
 			HOST = host;
 		}
+		log.debug("host updated: " + host);
 	}
 
 	public static String getHost() {
@@ -65,6 +72,7 @@ public class WarPlayer {
 		synchronized (PORT) {
 			PORT = port;
 		}
+		log.debug("port updated: " + port);
 	}
 
 	public static int getPort() {

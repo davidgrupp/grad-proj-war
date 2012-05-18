@@ -16,15 +16,15 @@ public class WarMonitorProxy {
 	static Logger log = Logger.getLogger(WarMonitorProxy.class);
 	private MsgGroupParser mgp;
 	private PrintWriter out;
-	private RequiredCommandHandler cmdr;
+	private DirectiveHandler hdlr;
 	private MsgGroup lastMsgGroup;
 
 	public WarMonitorProxy(final Reader monitorReader,
-			final Writer monitorWriter, final RequiredCommandHandler cmdHandler)
+			final Writer monitorWriter, final DirectiveHandler cmdHandler)
 			throws UnknownHostException, IOException {
 		this.mgp = new MsgGroupParser(monitorReader);
 		this.out = new PrintWriter(monitorWriter, true);
-		this.cmdr = cmdHandler;
+		this.hdlr = cmdHandler;
 	}
 
 	// public void setCmdHandler(final RequiredCommandHandler cmdHandle) {
@@ -38,18 +38,22 @@ public class WarMonitorProxy {
 		// }
 		for (MsgGroup mg = mgp.next(); mg != null; mg = mgp.next()) {
 			lastMsgGroup = mg;
+			final String resArg = mg.getResultArg();
+			if (resArg.startsWith("PASSWORD")) {
+				this.hdlr.resultPwd();
+			}
 			switch (mg.getRequiredCmd()) {
 			case CmdHelper.CMD_ID:
-				this.cmdr.ident();
+				this.hdlr.requireIdent();
 				break;
 			case CmdHelper.CMD_PWD:
-				this.cmdr.pwd();
+				this.hdlr.requirePwd();
 				break;
 			case CmdHelper.CMD_HP:
-				this.cmdr.hostPort();
+				this.hdlr.requireHostPort();
 				break;
 			case CmdHelper.CMD_ALIVE:
-				this.cmdr.alive();
+				this.hdlr.requireAlive();
 				break;
 			default:
 				log.debug("No command required by monitor, free form transaction begins...");
@@ -76,5 +80,9 @@ public class WarMonitorProxy {
 	public void cmdHostPort() {
 		this.out.println(CmdHelper.hostPort(WarPlayer.getHost(),
 				WarPlayer.getPort()));
+	}
+
+	public void cmdQuit() {
+		this.out.println(CmdHelper.quit());
 	}
 }

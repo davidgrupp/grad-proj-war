@@ -14,7 +14,7 @@ import org.apache.log4j.PropertyConfigurator;
 
 import uc.ap.war.protocol.CmdHelper;
 import uc.ap.war.protocol.MsgGroupParser;
-import uc.ap.war.protocol.RequiredCommandHandler;
+import uc.ap.war.protocol.DirectiveHandler;
 import uc.ap.war.protocol.WarMonitorProxy;
 import uc.ap.war.protocol.exp.NoCommandHandlerException;
 import uc.ap.war.protocol.exp.PlayerIdException;
@@ -26,7 +26,6 @@ public class WarServer implements Runnable {
 
 	public WarServer(final int port) {
 		this.port = port;
-		WarPlayer.setId("rsun1");
 		try {
 			sock = new ServerSocket(this.port);
 		} catch (IOException e) {
@@ -37,6 +36,7 @@ public class WarServer implements Runnable {
 
 	@Override
 	public void run() {
+		log.info("war server(passive client) started");
 		while (true) {
 			try {
 				final Socket sock = this.sock.accept();
@@ -44,11 +44,11 @@ public class WarServer implements Runnable {
 					@Override
 					public void run() {
 						try {
-							final Reader r = new InputStreamReader(sock
-									.getInputStream());
-							final Writer w = new OutputStreamWriter(sock
-									.getOutputStream());
-							AutoRequiredCmdHandler cmdr = new AutoRequiredCmdHandler();
+							final Reader r = new InputStreamReader(
+									sock.getInputStream());
+							final Writer w = new OutputStreamWriter(
+									sock.getOutputStream());
+							AutoDirHandler cmdr = new AutoDirHandler();
 							WarMonitorProxy mon = new WarMonitorProxy(r, w,
 									cmdr);
 							cmdr.setWarMonitoProxy(mon);
@@ -69,12 +69,11 @@ public class WarServer implements Runnable {
 	public static void main(String args[]) {
 		PropertyConfigurator.configure("log4j.properties");
 		new Thread(new WarServer(20000)).start();
-		log.info("war server(passive client) started");
 	}
 }
 
-class AutoRequiredCmdHandler implements RequiredCommandHandler {
-
+class AutoDirHandler implements DirectiveHandler {
+	static Logger log = Logger.getLogger(AutoDirHandler.class);
 	private WarMonitorProxy mon;
 
 	public void setWarMonitoProxy(final WarMonitorProxy monitorProxy) {
@@ -82,23 +81,33 @@ class AutoRequiredCmdHandler implements RequiredCommandHandler {
 	}
 
 	@Override
-	public void ident() throws PlayerIdException {
+	public void requireIdent() throws PlayerIdException {
 		this.mon.cmdIdent();
 	}
 
 	@Override
-	public void pwd() {
+	public void requirePwd() {
 		this.mon.cmdPwd();
 	}
 
 	@Override
-	public void hostPort() {
+	public void requireHostPort() {
 		this.mon.cmdHostPort();
 	}
 
 	@Override
-	public void alive() {
+	public void requireAlive() {
 		this.mon.cmdAlive();
+	}
+
+	@Override
+	public void resultPwd() {
+		log.debug("result: " + mon.getLastMsgGroup().getResultArg());
+	}
+
+	@Override
+	public void requireQuit() {
+		this.mon.cmdQuit();
 	}
 
 }

@@ -19,19 +19,20 @@ import javax.swing.JPanel;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
+import uc.ap.war.protocol.DirectiveHandler;
 import uc.ap.war.protocol.MsgGroup;
-import uc.ap.war.protocol.RequiredCommandHandler;
 import uc.ap.war.protocol.WarMonitorProxy;
 import uc.ap.war.protocol.exp.PlayerIdException;
 
 @SuppressWarnings("serial")
 public class WarClientGUI extends JFrame {
 	static Logger log = Logger.getLogger(WarClientGUI.class);
+	private WarMonitorProxy mon;
+	private WarServer svr;
 	private JTextArea taLog;
 	private JTextField tfId;
 	private JComboBox<String> cbMonHost;
@@ -39,7 +40,10 @@ public class WarClientGUI extends JFrame {
 	private JButton btnConn;
 	private JButton btnId;
 	private JButton btnPwd;
-	private WarMonitorProxy mon;
+	private JButton btnHostPort;
+	private JTextField tfSvrHost;
+	private JTextField tfSvrPort;
+	private JButton btnSvrUp;
 
 	public WarClientGUI() {
 		super.setPreferredSize(new Dimension(300, 300));
@@ -56,38 +60,26 @@ public class WarClientGUI extends JFrame {
 		final JPanel ctlPane = new JPanel();
 		ctlPane.setLayout(new GridLayout(5, 5));
 		super.add(ctlPane);
-		// player id
-		tfId = new JTextField();
-		tfId.getDocument().addDocumentListener(new DocumentListener() {
 
+		// monitor host
+		WarPlayer.setHost("localhost");
+		cbMonHost = new JComboBox<String>();
+		cbMonHost.addItem(WarPlayer.getHost());
+		cbMonHost.addItem("gauss.ececs.uc.edu");
+		cbMonHost.addActionListener(new ActionListener() {
 			@Override
-			public void changedUpdate(DocumentEvent arg0) {
-				updatePlayerId();
-			}
-
-			@Override
-			public void insertUpdate(DocumentEvent arg0) {
-				updatePlayerId();
-			}
-
-			@Override
-			public void removeUpdate(DocumentEvent arg0) {
-				updatePlayerId();
-			}
-
-			private void updatePlayerId() {
-				WarPlayer.setId(tfId.getText());
+			public void actionPerformed(ActionEvent e) {
+				WarPlayer.setHost((String) cbMonHost.getSelectedItem());
 			}
 		});
-		ctlPane.add(tfId);
-		// monitor host
-		cbMonHost = new JComboBox<String>();
-		cbMonHost.addItem("localhost");
-		cbMonHost.addItem("gauss.ececs.uc.edu");
+		ctlPane.add(cbMonHost);
 		// monitor port
 		cbMonPort = new JComboBox<Integer>();
-		cbMonPort.addItem(8180);
+		WarPlayer.setPort(8180);
+		cbMonPort.addItem(WarPlayer.getPort());
 		cbMonPort.addItem(8160);
+		ctlPane.add(cbMonPort);
+
 		// connect button
 		btnConn = new JButton("Connect");
 		btnConn.addActionListener(new ActionListener() {
@@ -121,6 +113,16 @@ public class WarClientGUI extends JFrame {
 		});
 		ctlPane.add(btnConn);
 
+		// player id
+		tfId = new JTextField();
+		tfId.getDocument().addDocumentListener(new TextFieldChangeHandler() {
+			@Override
+			protected void docChanged(DocumentEvent e) {
+				WarPlayer.setId(tfId.getText());
+			}
+		});
+		ctlPane.add(tfId);
+
 		// button ident
 		btnId = new JButton("Ident");
 		btnId.addActionListener(new ActionListener() {
@@ -147,35 +149,89 @@ public class WarClientGUI extends JFrame {
 		});
 		ctlPane.add(btnPwd);
 
+		tfSvrHost = new JTextField();
+		tfSvrHost.getDocument().addDocumentListener(
+				new TextFieldChangeHandler() {
+					@Override
+					protected void docChanged(DocumentEvent e) {
+						WarPlayer.setHost(tfSvrHost.getText());
+					}
+				});
+		ctlPane.add(tfSvrHost);
+		tfSvrPort = new JTextField();
+		tfSvrPort.getDocument().addDocumentListener(
+				new TextFieldChangeHandler() {
+					@Override
+					protected void docChanged(DocumentEvent e) {
+						try {
+							int port = Integer.parseInt(tfSvrPort.getText());
+							WarPlayer.setPort(port);
+						} catch (NumberFormatException e1) {
+							// simply do nothing
+						}
+					}
+				});
+		ctlPane.add(tfSvrPort);
+
+		// button server
+		btnSvrUp = new JButton("Server Up");
+		btnSvrUp.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				svr = new WarServer(WarPlayer.getPort());
+				new Thread(svr).start();
+			}
+		});
+		ctlPane.add(btnSvrUp);
+
+		// button host port
+		btnHostPort = new JButton("Host Port");
+		btnHostPort.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				mon.cmdHostPort();
+			}
+		});
+		ctlPane.add(btnHostPort);
+
 		log.debug("CheckerGameFrame inited...");
 	}
 
-	class GUIRequiredCmdHandler implements RequiredCommandHandler {
+	class GUIRequiredCmdHandler implements DirectiveHandler {
 
 		@Override
-		public void ident() throws PlayerIdException {
+		public void requireIdent() throws PlayerIdException {
 			taLog.append(mon.getLastMsgGroup().toString());
 			btnId.setForeground(new Color(255, 0, 0));
 		}
 
 		@Override
-		public void pwd() {
+		public void requirePwd() {
 			final MsgGroup mg = mon.getLastMsgGroup();
 			taLog.append(mg.toString());
-			log.debug("got monitor cookie: " + mg.getResult());
-			WarPlayer.setCookie(mg.getResult());
 			btnPwd.setForeground(new Color(255, 0, 0));
 		}
 
 		@Override
-		public void hostPort() {
+		public void requireHostPort() {
 			taLog.append(mon.getLastMsgGroup().toString());
-
 		}
 
 		@Override
-		public void alive() {
+		public void requireAlive() {
 			taLog.append(mon.getLastMsgGroup().toString());
+		}
+
+		@Override
+		public void resultPwd() {
+			final MsgGroup mg = mon.getLastMsgGroup();
+			log.debug("got monitor cookie: " + mg.getResultStr());
+			WarPlayer.setCookie(mg.getResultStr());
+		}
+
+		@Override
+		public void requireQuit() {
+			log.debug("quit command required");
 		}
 
 	}
