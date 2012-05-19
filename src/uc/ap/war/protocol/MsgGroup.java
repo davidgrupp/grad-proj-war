@@ -16,11 +16,18 @@ public class MsgGroup {
 	}
 
 	void addMsg(final String msg) {
+		// TODO: move message group pasing logic here, remove MsgGroupParser
+		// class
 		this.msgs.append(msg).append("\n");
 	}
 
 	public String toString() {
 		return this.msgs.toString();
+	}
+
+	public String getResult() {
+		// TODO: move result string parsing logic here
+		return resultArg + " " + resultStr;
 	}
 
 	public String getResultArg() {

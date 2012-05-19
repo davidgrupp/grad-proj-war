@@ -8,11 +8,6 @@ import org.apache.log4j.Logger;
 
 public class MsgGroupParser {
 	static Logger log = Logger.getLogger(MsgGroupParser.class);
-	public static final String DIR_WAIT = "WAITING";
-	public static final String DIR_REQ = "REQUIRE";
-	public static final String DIR_RESULT = "RESULT";
-	public static final String DIR_CMD_ERR = "COMMAND_ERROR";
-	public static final String DIR_QUIT = "QUIT";
 	private BufferedReader bReader = null;
 	private StringBuilder parsedMsgGroup;
 
@@ -30,12 +25,12 @@ public class MsgGroupParser {
 		while (directive != null) {
 			log.debug("parsing: " + directive);
 			mg.addMsg(directive);
-			if (directive.startsWith(DIR_WAIT)) {
+			if (directive.startsWith(ProtoKw.DIR_WAIT)) {
 				break;
-			} else if (directive.startsWith(DIR_RESULT)) {
+			} else if (directive.startsWith(ProtoKw.DIR_RESULT)) {
 				final String[] tokens = directive.split("\\s+", 3);
 				final String arg = tokens[1];
-				if (arg.equals(DIR_QUIT)) {
+				if (arg.equals(ProtoKw.DIR_QUIT)) {
 					log.debug("End of transaction, parsing aborted.");
 					return null;
 				}
@@ -43,9 +38,9 @@ public class MsgGroupParser {
 				if (tokens.length == 3) {
 					mg.setResultStr(tokens[2]);
 				}
-			} else if (directive.startsWith(DIR_CMD_ERR)) {
+			} else if (directive.startsWith(ProtoKw.DIR_CMD_ERR)) {
 				mg.setCmdError(directive.split("\\s+", 2)[1]);
-			} else if (directive.startsWith(DIR_REQ)) {
+			} else if (directive.startsWith(ProtoKw.DIR_REQ)) {
 				mg.setRequiredCmd(directive.split("\\s+")[1]);
 			}
 			directive = this.bReader.readLine();
@@ -56,4 +51,5 @@ public class MsgGroupParser {
 	public String getParsedMsgGroup() {
 		return this.parsedMsgGroup.toString();
 	}
+	
 }
