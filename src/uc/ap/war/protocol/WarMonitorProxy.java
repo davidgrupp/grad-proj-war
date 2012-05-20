@@ -50,6 +50,32 @@ public class WarMonitorProxy {
         issueCmd(CmdHelper.alive(WarPlayer.ins().getCookie()));
     }
 
+    public void cmdCrackCookie(final String targetId, int compAmt) {
+        issueCmd(CmdHelper.crackCookie(targetId, compAmt));
+    }
+
+    public void cmdCrackHostPort(final String targetId) {
+        issueCmd(CmdHelper.crackHostPort(targetId));
+    }
+
+    public void cmdCrackStatus(final String targetId, int compAmt) {
+        issueCmd(CmdHelper.crackStatus(targetId, compAmt));
+    }
+
+    public void cmdDeclareWar(final String targetId, final String host,
+            final int port, final int weaponsAmt, final int vehiclesAmt) {
+        issueCmd(CmdHelper.declearWar(targetId, host, port, weaponsAmt,
+                vehiclesAmt));
+    }
+
+    public void cmdDefendWar(int resourceAmt) {
+        issueCmd(CmdHelper.defendWar(resourceAmt, resourceAmt));
+    }
+
+    public void cmdGameIdents() {
+        issueCmd(CmdHelper.gameIdents());
+    }
+
     public void cmdHostPort() {
         issueCmd(CmdHelper.hostPort(WarPlayer.ins().getHost(), WarPlayer.ins()
                 .getPort()));
@@ -71,6 +97,10 @@ public class WarMonitorProxy {
         issueCmd(CmdHelper.quit());
     }
 
+    public void cmdRandomPlayerHp() {
+        issueCmd(CmdHelper.randomPlayerHp());
+    }
+
     public void cmdSignOff() {
         issueCmd(ProtoKw.CMD_SIGN_OFF);
     }
@@ -79,26 +109,67 @@ public class WarMonitorProxy {
         issueCmd(CmdHelper.synth() + " " + resource);
     }
 
+    public void cmdTradeAccepted() {
+        issueCmd(CmdHelper.tradeAccepted());
+    }
+
+    public void cmdTradeDeclined() {
+        issueCmd(CmdHelper.tradeDeclined());
+    }
+
+    public void cmdTradeReq(String myRes, String myResAmt, String targetId,
+            String forRes, String forResAmt) throws PlayerIdException {
+        issueCmd(CmdHelper.tradeReq(WarPlayer.INS.getId(), myRes, myResAmt,
+                targetId, forRes, forResAmt));
+    }
+
+    public void cmdWarStatus(final String warTargetId) {
+        issueCmd(CmdHelper.warStatus(warTargetId));
+    }
+
+    public void cmdWarTruce(String id, int rupy, int comp, int weap, int vehi,
+            int steel, int copper, int oil, int glass, int plastic, int rubber)
+            throws PlayerIdException {
+        issueCmd(CmdHelper.warTruce(WarPlayer.INS.getId(), id, rupy, comp,
+                weap, vehi, steel, copper, oil, glass, plastic, rubber));
+    }
+
     public void dispatchMonitorDirectives() throws IOException,
             PlayerIdException {
         for (MsgGroup mg = mgp.next(); mg != null; mg = mgp.next()) {
             lastMsgGroup = mg;
             pLog.log("[" + new Date() + "]\n");
             pLog.log(mg.toString() + "\n");
-            final String resArg = mg.getResultArg();
-            if (resArg.startsWith(ProtoKw.CMD_PWD)) {
+
+            switch (mg.getResultArg()) {
+            case ProtoKw.CMD_PWD:
                 this.hdlr.resultPwd(mg);
-            } else if (resArg.startsWith(ProtoKw.CMD_PSTAT)) {
+                break;
+            case ProtoKw.CMD_PSTAT:
                 this.hdlr.resultPlayerStatus(mg);
-            } else if (resArg.startsWith(ProtoKw.CMD_QUIT)) {
+                break;
+            case ProtoKw.CMD_QUIT:
                 this.hdlr.resultQuit(mg);
-            } else if (resArg.startsWith(ProtoKw.CMD_GAME_IDS)) {
+                break;
+            case ProtoKw.CMD_GAME_IDS:
                 this.hdlr.resultGameIds(mg);
-            } else if (resArg.startsWith(ProtoKw.CMD_RANDOM_PLAYER_HP)) {
-                this.hdlr.resultRandomPlayerHp(mg);
-            } else if (resArg.startsWith(ProtoKw.CMD_PLAYER_HP)) {
-                this.hdlr.resultPlayerHp(mg);
+                break;
+            case ProtoKw.CMD_RANDOM_PLAYER_HP:
+                this.hdlr.resultRandomHostPort(mg);
+                break;
+            case ProtoKw.CMD_CRACK_HP:
+                this.hdlr.resultCrackHostPort(mg);
+                break;
+            case ProtoKw.CMD_CRACK_STATUS:
+                this.hdlr.resultCrackStatus(mg);
+                break;
+            case ProtoKw.CMD_CRACK_COOKIE:
+                this.hdlr.resultCrackCookie(mg);
+                break;
+            default:
+                log.debug("unexpected result argument: " + mg.getResultArg());
             }
+
             switch (mg.getRequiredCmd()) {
             case ProtoKw.CMD_ID:
                 this.hdlr.requireIdent(this);
@@ -118,6 +189,12 @@ public class WarMonitorProxy {
             case ProtoKw.CMD_TRADE_RESP:
                 this.hdlr.requireTradeResp(this, mg);
                 break;
+            case ProtoKw.CMD_WAR_DEFEND:
+                this.hdlr.requireWarDefend(this, mg);
+                break;
+            case ProtoKw.CMD_WAR_TRUCE_RESP:
+                this.hdlr.requireTruceResp(this, mg);
+                break;
             default:
                 log.debug("No command required by monitor, free form transaction begins...");
             }
@@ -131,31 +208,5 @@ public class WarMonitorProxy {
     private void issueCmd(final String cmd) {
         this.out.println(cmd);
         pLog.log(cmd + "\n\n");
-    }
-
-    public void cmdGameIdents() {
-        issueCmd(CmdHelper.gameIdents());
-    }
-
-    public void cmdRandomPlayerHp() {
-        issueCmd(CmdHelper.randomPlayerHp());
-    }
-
-    public void cmdPlayerHp(String playerId) {
-        issueCmd(CmdHelper.playerHp(playerId));
-    }
-
-    public void cmdTradeReq(String myRes, String myResAmt, String targetId,
-            String forRes, String forResAmt) throws PlayerIdException {
-        issueCmd(CmdHelper.tradeReq(WarPlayer.INS.getId(), myRes, myResAmt,
-                targetId, forRes, forResAmt));
-    }
-
-    public void cmdTradeAccepted() {
-        issueCmd(CmdHelper.tradeAccepted());
-    }
-
-    public void cmdTradeDeclined() {
-        issueCmd(CmdHelper.tradeDeclined());
     }
 }

@@ -10,7 +10,18 @@ public class BasicDirectiveHandler implements DirectiveHandler {
     private static Logger log = Logger.getLogger(BasicDirectiveHandler.class);
 
     @Override
-    public void requireIdent(final WarMonitorProxy mon) throws PlayerIdException {
+    public void requireAlive(final WarMonitorProxy mon) {
+        mon.cmdAlive();
+    }
+
+    @Override
+    public void requireHostPort(final WarMonitorProxy mon) {
+        mon.cmdHostPort();
+    }
+
+    @Override
+    public void requireIdent(final WarMonitorProxy mon)
+            throws PlayerIdException {
         mon.cmdIdent();
     }
 
@@ -20,18 +31,50 @@ public class BasicDirectiveHandler implements DirectiveHandler {
     }
 
     @Override
-    public void requireHostPort(final WarMonitorProxy mon) {
-        mon.cmdHostPort();
-    }
-
-    @Override
-    public void requireAlive(final WarMonitorProxy mon) {
-        mon.cmdAlive();
-    }
-
-    @Override
     public void requireQuit(final WarMonitorProxy mon) {
         mon.cmdQuit();
+    }
+
+    @Override
+    public void requireTradeResp(final WarMonitorProxy mon, final MsgGroup mg) {
+    }
+
+    @Override
+    public void requireTruceResp(final WarMonitorProxy mon, final MsgGroup mg) {
+
+    }
+
+    @Override
+    public void requireWarDefend(final WarMonitorProxy mon, final MsgGroup mg) {
+
+    }
+
+    @Override
+    public void resultCrackCookie(final MsgGroup mg) {
+
+    }
+
+    @Override
+    public void resultCrackHostPort(final MsgGroup mg) {
+        log.debug(mg.getResult());
+    }
+
+    @Override
+    public void resultCrackStatus(MsgGroup mg) {
+        
+    }
+
+    @Override
+    public void resultGameIds(final MsgGroup mg) {
+        log.debug(mg.getResult());
+    }
+
+    @Override
+    public void resultPlayerStatus(final MsgGroup mg) {
+        log.debug(mg.getResult());
+        final HashMap<String, Integer> res = ProtocolHelper
+                .parsePlayerStatResources(mg);
+        WarPlayer.ins().updateResources(res);
     }
 
     @Override
@@ -41,39 +84,13 @@ public class BasicDirectiveHandler implements DirectiveHandler {
     }
 
     @Override
-    public void resultPlayerStatus(final MsgGroup mg) {
-        log.debug(mg.getResult());
-        final HashMap<String, Integer> res = ProtocolHelper
-                .parseResources(mg);
-        WarPlayer.ins().updateResources(res);
-    }
-
-    @Override
     public void resultQuit(final MsgGroup mg) {
         log.debug(mg.getResult());
     }
 
     @Override
-    public void resultGameIds(final MsgGroup mg) {
+    public void resultRandomHostPort(final MsgGroup mg) {
         log.debug(mg.getResult());
-    }
-
-    @Override
-    public void resultRandomPlayerHp(final MsgGroup mg) {
-        log.debug(mg.getResult());
-    }
-
-    @Override
-    public void resultPlayerHp(final MsgGroup mg) {
-        log.debug(mg.getResult());
-    }
-
-    @Override
-    public void requireTradeResp(final WarMonitorProxy mon, final MsgGroup mg) {
-    }
-
-    @Override
-    public void requestWar(final WarMonitorProxy mon, final MsgGroup mg) {
     }
 
 }

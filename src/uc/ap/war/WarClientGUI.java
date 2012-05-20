@@ -17,12 +17,15 @@ import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
 import java.net.Socket;
+import java.util.HashMap;
 
+import javax.swing.AbstractButton;
 import javax.swing.BorderFactory;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
+import javax.swing.JFormattedTextField;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -32,6 +35,7 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.event.DocumentEvent;
 import javax.swing.text.DefaultCaret;
+import javax.swing.text.NumberFormatter;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
@@ -78,7 +82,7 @@ public class WarClientGUI extends JFrame {
     private JButton btnHostPort;
     private JTextField tfMyId;
     private JTextField tfMyHost;
-    private JTextField tfMyPort;
+    private JFormattedTextField tfMyPort;
     private JButton btnSvrUp;
     private JButton btnSvrDown;
     private JButton btnAlive;
@@ -90,7 +94,7 @@ public class WarClientGUI extends JFrame {
     private JComboBox<String> cbCompRes;
     private JButton btnSynth;
     private JButton btnGameIdents;
-    private JComboBox<String> cbGameIds;
+    private JComboBox<String> cbCrackTargetIds;
     private JTextField tfOtherId;
     private JTextField tfOtherHost;
     private JTextField tfOtherPort;
@@ -114,10 +118,24 @@ public class WarClientGUI extends JFrame {
     private JTextField tfTradeMyResAmt;
     private JTextField tfTradeForResAmt;
     private JButton btnDeclareWar;
-    private JButton btnDefendWar;
+    private JButton btnWarStatus;
+    private JFrame frameForDialog = this;
+    private JComboBox<String> cbWarTargetId;
+    private JButton btnWarTruce;
+    private JTextField tfOtherCookie;
+    private JTextField tfOtherRupy;
+    private JTextField tfOtherComputer;
+    private JTextField tfOtherWeapon;
+    private JTextField tfOtherVehicle;
+    private JTextField tfOtherSteel;
+    private JTextField tfOtherCopper;
+    private JTextField tfOtherOil;
+    private JTextField tfOtherGlass;
+    private JTextField tfOtherPlastic;
+    private JTextField tfOtherRubber;
 
     public WarClientGUI() {
-        super.setPreferredSize(new Dimension(FRAME_WIDTH, 600));
+        super.setPreferredSize(new Dimension(FRAME_WIDTH, 700));
         super.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         // a 3-column layout
         super.setLayout(new GridLayout(0, 3));
@@ -132,20 +150,20 @@ public class WarClientGUI extends JFrame {
         midPane.add(buildConfigPane());
         midPane.add(buildRegPane());
         midPane.add(buildResoursePane());
-        midPane.add(buildWarPane());
+        midPane.add(buildPlayerPane());
 
         // right pane
         final JPanel rightPane = new JPanel();
         rightPane.setLayout(new FlowLayout());
         super.add(rightPane);
-        rightPane.add(buildPlayerPane());
+        rightPane.add(buildWarPane());
         rightPane.add(buildOthersPane());
 
         log.debug("CheckerGameFrame inited...");
     }
 
     private JPanel buildConfigPane() {
-        final JPanel pane = initControlPane("Config", 150);
+        final JPanel pane = initControlPane("Config", 120);
 
         final JTextField tfPersistantPlayerId = new JTextField();
         btnLoadPlayer = new JButton("Load Player (Id): ");
@@ -169,7 +187,33 @@ public class WarClientGUI extends JFrame {
         pane.add(btnLoadPlayer);
         pane.add(tfPersistantPlayerId);
 
-        // monitor host
+        btnSvrUp = new JButton("Server Up");
+        btnSvrUp.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                final WarMonitorProxyLogger pLog = new WarMonitorProxyLogger() {
+                    @Override
+                    public void log(String msg) {
+                        taSvrLog.append(msg);
+                    }
+                };
+                svr = new WarServer(WarPlayer.ins().getPort(),
+                        new ServerDirectiveHandler(), pLog);
+                svrThread = new Thread(svr);
+                svrThread.start();
+            }
+        });
+        pane.add(btnSvrUp);
+
+        btnSvrDown = new JButton("Server Down");
+        btnSvrDown.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                svrThread.interrupt();
+            }
+        });
+        pane.add(btnSvrDown);
+
         pane.add(new JLabel("Monitor Host"));
         cbMonHost = new JComboBox<String>();
         WarPlayer.ins().setHost("localhost");
@@ -182,7 +226,7 @@ public class WarClientGUI extends JFrame {
             }
         });
         pane.add(cbMonHost);
-        // monitor port
+
         pane.add(new JLabel("Monitor Port"));
         cbMonPort = new JComboBox<Integer>();
         WarPlayer.ins().setPort(8180);
@@ -190,7 +234,6 @@ public class WarClientGUI extends JFrame {
         cbMonPort.addItem(8160);
         pane.add(cbMonPort);
 
-        // connect button
         btnConn = new JButton("Connect");
         btnConn.addActionListener(new ActionListener() {
             @Override
@@ -231,7 +274,6 @@ public class WarClientGUI extends JFrame {
         });
         pane.add(btnConn);
 
-        // disconnect button
         btnDisconn = new JButton("Disconnect");
         btnDisconn.addActionListener(new ActionListener() {
             @Override
@@ -246,34 +288,14 @@ public class WarClientGUI extends JFrame {
         });
         pane.add(btnDisconn);
 
-        // button server up
-        btnSvrUp = new JButton("Server Up");
-        btnSvrUp.addActionListener(new ActionListener() {
+        btnGameIdents = new JButton("Get Game Idents:");
+        btnGameIdents.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                final WarMonitorProxyLogger pLog = new WarMonitorProxyLogger() {
-                    @Override
-                    public void log(String msg) {
-                        taSvrLog.append(msg);
-                    }
-                };
-                svr = new WarServer(WarPlayer.ins().getPort(),
-                        new ServerDirectiveHandler(), pLog);
-                svrThread = new Thread(svr);
-                svrThread.start();
+                mon.cmdGameIdents();
             }
         });
-        pane.add(btnSvrUp);
-
-        // button server down
-        btnSvrDown = new JButton("Server Down");
-        btnSvrDown.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                svrThread.interrupt();
-            }
-        });
-        pane.add(btnSvrDown);
+        pane.add(btnGameIdents);
 
         return pane;
     }
@@ -303,14 +325,131 @@ public class WarClientGUI extends JFrame {
         return pane;
     }
 
+    private JPanel buildOthersPane() {
+        final JPanel pane = initControlPane("Other Players", 400);
+
+        pane.add(new JLabel("Target Id"));
+
+        cbCrackTargetIds = new JComboBox<String>();
+        cbCrackTargetIds.setModel(new DefaultComboBoxModel<String>(WarInfo
+                .ins().getOtherPlayerIds()));
+        pane.add(cbCrackTargetIds);
+
+        final JTextField tfCrackStatusComputers = new JFormattedTextField(
+                new RegexFormatter("\\d+"));
+        pane.add(tfCrackStatusComputers);
+        final JButton btnCrackStatus = new JButton("Crack Status");
+        btnCrackStatus.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                final String pid = (String) cbCrackTargetIds.getSelectedItem();
+                final int compAmt = Integer.parseInt(tfCrackStatusComputers
+                        .getText());
+                mon.cmdCrackStatus(pid, compAmt);
+            }
+        });
+        pane.add(btnCrackStatus);
+
+        final JTextField tfCrackCookieComputers = new JFormattedTextField(
+                new RegexFormatter("\\d+"));
+        pane.add(tfCrackCookieComputers);
+        final JButton btnCrackCookie = new JButton("Crack Cookie");
+        btnCrackCookie.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                final String pid = (String) cbCrackTargetIds.getSelectedItem();
+                final int compAmt = Integer.parseInt(tfCrackCookieComputers
+                        .getText());
+                mon.cmdCrackCookie(pid, compAmt);
+            }
+        });
+        pane.add(btnCrackCookie);
+
+        btnOtherHp = new JButton("Crack Host Port");
+        btnOtherHp.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                mon.cmdCrackHostPort((String) cbCrackTargetIds
+                        .getSelectedItem());
+            }
+        });
+        pane.add(btnOtherHp);
+
+        btnRandomPlayerHp = new JButton("Random Host Port");
+        btnRandomPlayerHp.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                mon.cmdRandomPlayerHp();
+            }
+        });
+        pane.add(btnRandomPlayerHp);
+
+        pane.add(new JLabel("Id"));
+        tfOtherId = new JTextField();
+        pane.add(tfOtherId);
+        pane.add(new JLabel("Host"));
+        tfOtherHost = new JTextField();
+        pane.add(tfOtherHost);
+        pane.add(new JLabel("Port"));
+        tfOtherPort = new JTextField();
+        pane.add(tfOtherPort);
+
+        pane.add(new JLabel("Cookie"));
+        tfOtherCookie = new JTextField();
+        pane.add(tfOtherCookie);
+
+        pane.add(new JLabel("Rupyulars"));
+        tfOtherRupy = new JTextField();
+        tfOtherRupy.setEnabled(false);
+        pane.add(tfOtherRupy);
+        pane.add(new JLabel("Computers"));
+        tfOtherComputer = new JTextField();
+        tfOtherComputer.setEnabled(false);
+        pane.add(tfOtherComputer);
+        pane.add(new JLabel("Weapons"));
+        tfOtherWeapon = new JTextField();
+        tfOtherWeapon.setEnabled(false);
+        pane.add(tfOtherWeapon);
+        pane.add(new JLabel("Vehicles"));
+        tfOtherVehicle = new JTextField();
+        tfOtherVehicle.setEnabled(false);
+        pane.add(tfOtherVehicle);
+        pane.add(new JLabel("steel"));
+        tfOtherSteel = new JTextField();
+        tfOtherSteel.setEnabled(false);
+        pane.add(tfOtherSteel);
+        pane.add(new JLabel("copper"));
+        tfOtherCopper = new JTextField();
+        tfOtherCopper.setEnabled(false);
+        pane.add(tfOtherCopper);
+        pane.add(new JLabel("oil"));
+        tfOtherOil = new JTextField();
+        tfOtherOil.setEnabled(false);
+        pane.add(tfOtherOil);
+        pane.add(new JLabel("glass"));
+        tfOtherGlass = new JTextField();
+        tfOtherGlass.setEnabled(false);
+        pane.add(tfOtherGlass);
+        pane.add(new JLabel("plastic"));
+        tfOtherPlastic = new JTextField();
+        tfOtherPlastic.setEnabled(false);
+        pane.add(tfOtherPlastic);
+        pane.add(new JLabel("rubber"));
+        tfOtherRubber = new JTextField();
+        tfOtherRubber.setEnabled(false);
+        pane.add(tfOtherRubber);
+
+        return pane;
+    }
+
     private JPanel buildPlayerPane() {
         final JPanel pane = new JPanel();
-        pane.setPreferredSize(new Dimension(CTL_PANE_WIDTH, 300));
+        pane.setPreferredSize(new Dimension(CTL_PANE_WIDTH, 350));
         pane.setBorder(BorderFactory.createTitledBorder("This Player"));
         pane.setLayout(new GridLayout(0, 2));
 
         // player id
-        pane.add(new JLabel("Player ID"));
+        pane.add(new JLabel("Id"));
         tfMyId = new JTextField();
         tfMyId.getDocument().addDocumentListener(new TextFieldChangeHandler() {
             @Override
@@ -320,7 +459,7 @@ public class WarClientGUI extends JFrame {
         });
         pane.add(tfMyId);
 
-        pane.add(new JLabel("Server Host"));
+        pane.add(new JLabel("Host"));
         tfMyHost = new JTextField();
         tfMyHost.getDocument().addDocumentListener(
                 new TextFieldChangeHandler() {
@@ -331,21 +470,28 @@ public class WarClientGUI extends JFrame {
                 });
         pane.add(tfMyHost);
 
-        pane.add(new JLabel("Server Port"));
-        tfMyPort = new JTextField();
-        tfMyPort.getDocument().addDocumentListener(
-                new TextFieldChangeHandler() {
+        pane.add(new JLabel("Port"));
+        final NumberFormatter nf = new NumberFormatter();
+        nf.setMinimum(new Integer(2048));
+        nf.setMaximum(new Integer(65000));
+        tfMyPort = new JFormattedTextField(nf);
+        tfMyPort.addPropertyChangeListener("value",
+                new PropertyChangeListener() {
                     @Override
-                    protected void docChanged(DocumentEvent e) {
-                        try {
-                            int port = Integer.parseInt(tfMyPort.getText());
+                    public void propertyChange(PropertyChangeEvent evt) {
+                        final Object v = evt.getNewValue();
+                        if (v != null) {
+                            final int port = ((Number) v).intValue();
                             WarPlayer.ins().setPort(port);
-                        } catch (NumberFormatException e1) {
-                            // simply do nothing
                         }
                     }
                 });
         pane.add(tfMyPort);
+
+        pane.add(new JLabel("Cookie"));
+        tfMyCookie = new JTextField();
+        tfMyCookie.setEnabled(false);
+        pane.add(tfMyCookie);
 
         pane.add(new JLabel("Rupyulars"));
         tfMyRupy = new JTextField();
@@ -415,7 +561,7 @@ public class WarClientGUI extends JFrame {
     }
 
     private JPanel buildRegPane() {
-        final JPanel pane = initControlPane("Registration", 100);
+        final JPanel pane = initControlPane("Registration", 80);
 
         // button ident
         btnId = new JButton("Ident");
@@ -487,61 +633,6 @@ public class WarClientGUI extends JFrame {
         return pane;
     }
 
-    private JPanel buildWarPane() {
-        final JPanel pane = initControlPane("War", 50);
-
-        btnDeclareWar = new JButton("Declare War");
-        final JFrame parentFrame = this;
-        btnDeclareWar.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent arg0) {
-
-            }
-        });
-        pane.add(btnDeclareWar);
-
-        btnDefendWar = new JButton("Defend War");
-        btnDefendWar.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                final JOptionPane optionPane = new JOptionPane(
-                        "XXX declared war!\n"
-                                + "how many resources used for defending?\n",
-                        JOptionPane.QUESTION_MESSAGE, JOptionPane.YES_NO_OPTION);
-
-                final JDialog dialog = new JDialog(parentFrame, "War Declared",
-                        false);
-                dialog.setContentPane(optionPane);
-                dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
-                dialog.addWindowListener(new WindowAdapter() {
-                    public void windowClosing(WindowEvent we) {
-                        log.debug("Not allowed to close dialog directly...");
-                    }
-                });
-                optionPane
-                        .addPropertyChangeListener(new PropertyChangeListener() {
-                            public void propertyChange(PropertyChangeEvent e) {
-                                String prop = e.getPropertyName();
-                                if (dialog.isVisible()
-                                        && (e.getSource() == optionPane)
-                                        && (prop.equals(JOptionPane.VALUE_PROPERTY))) {
-                                    // If you were going to check something
-                                    // before closing the window, you'd do
-                                    // it here.
-                                    dialog.setVisible(false);
-                                    log.debug("option pane property changed");
-                                }
-                            }
-                        });
-                dialog.pack();
-                dialog.setVisible(true);
-            }
-        });
-        pane.add(btnDefendWar);
-
-        return pane;
-    }
-
     private JPanel buildResoursePane() {
         final JPanel pane = initControlPane("Resource", 100);
 
@@ -595,50 +686,187 @@ public class WarClientGUI extends JFrame {
         return pane;
     }
 
-    private JPanel buildOthersPane() {
-        final JPanel pane = initControlPane("Other Players", 150);
+    private JPanel buildWarPane() {
+        final JPanel pane = initControlPane("War", 100);
 
-        btnGameIdents = new JButton("Get Game Idents:");
-        btnGameIdents.addActionListener(new ActionListener() {
+        cbWarTargetId = new JComboBox<String>();
+        pane.add(cbWarTargetId);
+
+        btnWarStatus = new JButton("War Status");
+        btnWarStatus.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                mon.cmdGameIdents();
+                mon.cmdWarStatus((String) cbWarTargetId.getSelectedItem());
             }
         });
-        pane.add(btnGameIdents);
+        pane.add(btnWarStatus);
 
-        cbGameIds = new JComboBox<String>();
-        cbGameIds.setModel(new DefaultComboBoxModel<String>(WarInfo.ins()
-                .getOtherPlayerIds()));
-        pane.add(cbGameIds);
-
-        btnRandomPlayerHp = new JButton("Random Player Host/Port");
-        btnRandomPlayerHp.addActionListener(new ActionListener() {
+        btnDeclareWar = new JButton("Declare War...");
+        btnDeclareWar.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                mon.cmdRandomPlayerHp();
+                final JDialog dialog = new JDialog(frameForDialog,
+                        "Declare War", false);
+                dialog.setLayout(new BorderLayout());
+
+                final JPanel pane = new JPanel();
+                pane.setPreferredSize(new Dimension(250, 150));
+                pane.setLayout(new GridLayout(0, 2));
+                dialog.add(pane, BorderLayout.CENTER);
+
+                pane.add(new JLabel("Target Id"));
+                final JTextField tfTargetId = new JTextField();
+                pane.add(tfTargetId);
+                pane.add(new JLabel("Target Host"));
+                final JTextField tfTargetHost = new JTextField();
+                pane.add(tfTargetHost);
+                pane.add(new JLabel("Target Port"));
+                final JTextField tfTargetPort = new JTextField();
+                pane.add(tfTargetPort);
+                pane.add(new JLabel("# of Weapons"));
+                final JTextField tfWeaponsAmt = new JTextField();
+                pane.add(tfWeaponsAmt);
+                pane.add(new JLabel("# of Vehicles"));
+                final JTextField tfVehiclesAmt = new JTextField();
+                pane.add(tfVehiclesAmt);
+                final JButton btnOk = new JButton("Ok");
+                btnOk.addActionListener(new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        final String id = tfTargetId.getText();
+                        final String host = tfTargetHost.getText();
+                        final int port = Integer.parseInt(tfTargetPort
+                                .getText());
+                        final int wAmt = Integer.parseInt(tfWeaponsAmt
+                                .getText());
+                        final int vAmt = Integer.parseInt(tfVehiclesAmt
+                                .getText());
+                        mon.cmdDeclareWar(id, host, port, wAmt, vAmt);
+                        dialog.setVisible(false);
+                    }
+                });
+                pane.add(btnOk);
+                final JButton btnCancel = new JButton("Cancel");
+                btnCancel.addActionListener(new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        dialog.setVisible(false);
+                    }
+                });
+                pane.add(btnCancel);
+
+                dialog.pack();
+                dialog.setVisible(true);
             }
         });
-        pane.add(btnRandomPlayerHp);
+        pane.add(btnDeclareWar);
 
-        btnOtherHp = new JButton("Player Host Port");
-        btnOtherHp.addActionListener(new ActionListener() {
+        btnWarTruce = new JButton("War Truce...");
+        btnWarTruce.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                mon.cmdPlayerHp((String) cbGameIds.getSelectedItem());
+                final JDialog dialog = new JDialog(frameForDialog,
+                        "Declare War", false);
+                dialog.setLayout(new BorderLayout());
+
+                final JPanel pane = new JPanel();
+                pane.setPreferredSize(new Dimension(250, 400));
+                pane.setLayout(new GridLayout(0, 2));
+                dialog.add(pane, BorderLayout.CENTER);
+
+                pane.add(new JLabel("Target Id"));
+                final JTextField tfTargetId = new JTextField();
+                pane.add(tfTargetId);
+                pane.add(new JLabel(ProtoKw.RES_RUPYULARS));
+                final JTextField tfRupy = new JFormattedTextField(
+                        new RegexFormatter("\\d+"));
+                tfRupy.setText("0");
+                pane.add(tfRupy);
+                pane.add(new JLabel(ProtoKw.RES_COMPUTERS));
+                final JTextField tfComputer = new JFormattedTextField(
+                        new RegexFormatter("\\d+"));
+                tfComputer.setText("0");
+                pane.add(tfComputer);
+                pane.add(new JLabel(ProtoKw.RES_WEAPONS));
+                final JTextField tfWeapon = new JFormattedTextField(
+                        new RegexFormatter("\\d+"));
+                tfWeapon.setText("0");
+                pane.add(tfWeapon);
+                pane.add(new JLabel(ProtoKw.RES_VEHICLES));
+                final JTextField tfVehicle = new JFormattedTextField(
+                        new RegexFormatter("\\d+"));
+                tfVehicle.setText("0");
+                pane.add(tfVehicle);
+                pane.add(new JLabel(ProtoKw.RES_STEEL));
+                final JTextField tfSteel = new JFormattedTextField(
+                        new RegexFormatter("\\d+"));
+                tfSteel.setText("0");
+                pane.add(tfSteel);
+                pane.add(new JLabel(ProtoKw.RES_COPPER));
+                final JTextField tfCopper = new JFormattedTextField(
+                        new RegexFormatter("\\d+"));
+                tfCopper.setText("0");
+                pane.add(tfCopper);
+                pane.add(new JLabel(ProtoKw.RES_OIL));
+                final JTextField tfOil = new JFormattedTextField(
+                        new RegexFormatter("\\d+"));
+                tfOil.setText("0");
+                pane.add(tfOil);
+                pane.add(new JLabel(ProtoKw.RES_GLASS));
+                final JTextField tfGlass = new JFormattedTextField(
+                        new RegexFormatter("\\d+"));
+                tfGlass.setText("0");
+                pane.add(tfGlass);
+                pane.add(new JLabel(ProtoKw.RES_PLASTIC));
+                final JTextField tfPlastic = new JFormattedTextField(
+                        new RegexFormatter("\\d+"));
+                tfPlastic.setText("0");
+                pane.add(tfPlastic);
+                pane.add(new JLabel(ProtoKw.RES_RUBBER));
+                final JTextField tfRubber = new JFormattedTextField(
+                        new RegexFormatter("\\d+"));
+                tfRubber.setText("0");
+                pane.add(tfRubber);
+                final JButton btnOk = new JButton("Ok");
+                btnOk.addActionListener(new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        final String id = tfTargetId.getText();
+                        final int rupy = Integer.parseInt(tfRupy.getText());
+                        final int comp = Integer.parseInt(tfComputer.getText());
+                        final int weap = Integer.parseInt(tfWeapon.getText());
+                        final int vehi = Integer.parseInt(tfVehicle.getText());
+                        final int steel = Integer.parseInt(tfSteel.getText());
+                        final int copper = Integer.parseInt(tfCopper.getText());
+                        final int oil = Integer.parseInt(tfOil.getText());
+                        final int glass = Integer.parseInt(tfGlass.getText());
+                        final int plastic = Integer.parseInt(tfPlastic
+                                .getText());
+                        final int rubber = Integer.parseInt(tfRubber.getText());
+                        try {
+                            mon.cmdWarTruce(id, rupy, comp, weap, vehi, steel,
+                                    copper, oil, glass, plastic, rubber);
+                        } catch (PlayerIdException ex) {
+                            log.error(ex);
+                        }
+                        dialog.setVisible(false);
+                    }
+                });
+                pane.add(btnOk);
+                final JButton btnCancel = new JButton("Cancel");
+                btnCancel.addActionListener(new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        dialog.setVisible(false);
+                    }
+                });
+                pane.add(btnCancel);
+
+                dialog.pack();
+                dialog.setVisible(true);
             }
         });
-        pane.add(btnOtherHp);
-
-        pane.add(new JLabel("Other Player Id"));
-        tfOtherId = new JTextField();
-        pane.add(tfOtherId);
-        pane.add(new JLabel("Other Player Host"));
-        tfOtherHost = new JTextField();
-        pane.add(tfOtherHost);
-        pane.add(new JLabel("Other Player Port"));
-        tfOtherPort = new JTextField();
-        pane.add(tfOtherPort);
+        pane.add(btnWarTruce);
 
         return pane;
     }
@@ -665,37 +893,6 @@ public class WarClientGUI extends JFrame {
         tfMyRubber.setText(String.valueOf(me.getRubber()));
     }
 
-    private boolean showTradeRequestDialog() {
-        final String[] options = { "Accept", "Decline" };
-        final JFrame parentFrame = this;
-        final int optIndex = JOptionPane.showOptionDialog(parentFrame,
-                "Trade request from ...", "Trade Request",
-                JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE,
-                null, options, options[0]);
-        if (optIndex == 0) {
-            log.debug("Trade request accepted...");
-            return true;
-            // mon.cmdTradeAccepted();
-        } else {
-            log.debug("Trade request declined");
-            return false;
-            // mon.cmdTradeDeclined();
-        }
-    }
-
-    class ServerDirectiveHandler extends BasicDirectiveHandler {
-        @Override
-        public void requireTradeResp(final WarMonitorProxy mon,
-                final MsgGroup mg) {
-            boolean tradeAccepted = showTradeRequestDialog();
-            if (tradeAccepted) {
-                mon.cmdTradeAccepted();
-            } else {
-                mon.cmdTradeDeclined();
-            }
-        }
-    }
-
     class ClientDirectiveHandler extends BasicDirectiveHandler {
 
         @Override
@@ -720,23 +917,62 @@ public class WarClientGUI extends JFrame {
         }
 
         @Override
-        public void resultPlayerStatus(final MsgGroup mg) {
-            super.resultPlayerStatus(mg);
-            refreshMyResourceInfo();
+        public void resultCrackCookie(final MsgGroup mg) {
+            final String playerCookie = ProtocolHelper.parseCrackCookie(mg);
+            if (playerCookie != null) {
+                tfOtherCookie.setText(playerCookie);
+            }
+        }
+
+        @Override
+        public void resultCrackHostPort(final MsgGroup mg) {
+            final String[] playerHp = ProtocolHelper.parseCrackHp(mg);
+            if (playerHp != null && playerHp.length == 3) {
+                tfOtherId.setText(playerHp[0]);
+                tfOtherHost.setText(playerHp[1]);
+                tfOtherPort.setText(playerHp[2]);
+            }
+        }
+
+        @Override
+        public void resultCrackStatus(final MsgGroup mg) {
+            final HashMap<String, Integer> res = ProtocolHelper
+                    .parseCrackStatus(mg);
+            tfOtherRupy.setText(String.valueOf(res.get(ProtoKw.RES_RUPYULARS)));
+            tfOtherComputer.setText(String.valueOf(res
+                    .get(ProtoKw.RES_COMPUTERS)));
+            tfOtherWeapon.setText(String.valueOf(res.get(ProtoKw.RES_WEAPONS)));
+            tfOtherVehicle
+                    .setText(String.valueOf(res.get(ProtoKw.RES_VEHICLES)));
+            tfOtherSteel.setText(String.valueOf(res.get(ProtoKw.RES_STEEL)));
+            tfOtherCopper.setText(String.valueOf(res.get(ProtoKw.RES_COPPER)));
+            tfOtherOil.setText(String.valueOf(res.get(ProtoKw.RES_OIL)));
+            tfOtherGlass.setText(String.valueOf(res.get(ProtoKw.RES_GLASS)));
+            tfOtherPlastic
+                    .setText(String.valueOf(res.get(ProtoKw.RES_PLASTIC)));
+            tfOtherRubber.setText(String.valueOf(res.get(ProtoKw.RES_RUBBER)));
         }
 
         @Override
         public void resultGameIds(final MsgGroup mg) {
             final String[] gameIds = ProtocolHelper.parseGameIds(mg);
             log.debug("Got game ids: " + gameIds);
-            cbGameIds.setModel(new DefaultComboBoxModel<String>(gameIds));
+            cbCrackTargetIds
+                    .setModel(new DefaultComboBoxModel<String>(gameIds));
             cbTradeTargetId.setModel(new DefaultComboBoxModel<String>(gameIds));
             cbTradeTargetId.addItem("MONITOR");
+            cbWarTargetId.setModel(new DefaultComboBoxModel<String>(gameIds));
         }
 
         @Override
-        public void resultRandomPlayerHp(final MsgGroup mg) {
-            final String[] playerHp = ProtocolHelper.parseRandomPlayerHp(mg);
+        public void resultPlayerStatus(final MsgGroup mg) {
+            super.resultPlayerStatus(mg);
+            refreshMyResourceInfo();
+        }
+
+        @Override
+        public void resultRandomHostPort(final MsgGroup mg) {
+            final String[] playerHp = ProtocolHelper.parseCrackHp(mg);
             if (playerHp != null && playerHp.length == 3) {
                 tfOtherId.setText(playerHp[0]);
                 tfOtherHost.setText(playerHp[1]);
@@ -744,26 +980,70 @@ public class WarClientGUI extends JFrame {
             }
         }
 
-        @Override
-        public void resultPlayerHp(final MsgGroup mg) {
-            final String[] playerHp = ProtocolHelper.parseRandomPlayerHp(mg);
-            if (playerHp != null && playerHp.length == 3) {
-                tfOtherId.setText(playerHp[0]);
-                tfOtherHost.setText(playerHp[1]);
-                tfOtherPort.setText(playerHp[2]);
-            }
-        }
+    }
+
+    class ServerDirectiveHandler extends BasicDirectiveHandler {
 
         @Override
         public void requireTradeResp(final WarMonitorProxy mon,
                 final MsgGroup mg) {
-            log.debug("got trade request...");
+            final String[] options = { "Accept", "Decline" };
+            final int optIndex = JOptionPane.showOptionDialog(frameForDialog,
+                    "Trade requested from ...", "Trade Requested",
+                    JOptionPane.YES_NO_CANCEL_OPTION,
+                    JOptionPane.QUESTION_MESSAGE, null, options, options[1]);
+            if (optIndex == 0) {
+                log.debug("Trade request accepted...");
+                mon.cmdTradeAccepted();
+            } else {
+                log.debug("Trade request declined");
+                mon.cmdTradeDeclined();
+            }
         }
 
         @Override
-        public void requestWar(final WarMonitorProxy mon, final MsgGroup mg) {
-            // TODO Auto-generated method stub
+        public void requireWarDefend(WarMonitorProxy warMonitorProxy,
+                MsgGroup mg) {
+            final JDialog dialog = new JDialog(frameForDialog, "War Declared",
+                    false);
+            dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+            dialog.addWindowListener(new WindowAdapter() {
+                public void windowClosing(WindowEvent we) {
+                    log.debug("Not allowed to close dialog directly...");
+                }
+            });
 
+            final JPanel pane = new JPanel();
+            dialog.add(pane, BorderLayout.CENTER);
+            pane.setPreferredSize(new Dimension(150, 100));
+
+            pane.setLayout(new GridLayout(0, 1));
+            pane.add(new JLabel("xxx declared war!"));
+            pane.add(new JLabel("How many resource used for depending?"));
+            final JFormattedTextField tfResAmt = new JFormattedTextField(
+                    new RegexFormatter("\\d+"));
+            pane.add(tfResAmt);
+            final JButton btnOk = new JButton("Ok");
+            btnOk.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent arg0) {
+                    if (tfResAmt.getValue() != null) {
+                        final int resAmt = Integer.parseInt((String) tfResAmt
+                                .getValue());
+                        log.debug("gonna defend war with " + resAmt
+                                + "weapons and vehicles");
+                        mon.cmdDefendWar(resAmt);
+                        dialog.setVisible(false);
+                    } else {
+                        log.debug("waiting for valid rsource amount ...");
+                    }
+                }
+            });
+            pane.add(btnOk);
+
+            dialog.pack();
+            dialog.setVisible(true);
         }
+
     }
 }
