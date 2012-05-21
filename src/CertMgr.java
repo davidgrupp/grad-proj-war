@@ -33,8 +33,8 @@ public class CertMgr {
     private KarnBufferedReader karnIn;
     private KarnPrintWriter karnOut;
 
-    public CertMgr() throws MalformedURLException,
-            RemoteException, NotBoundException {
+    public CertMgr() throws MalformedURLException, RemoteException,
+            NotBoundException {
         myKey = new RSA(256);
         CertRemote r = (CertRemote) Naming
                 .lookup("rmi://localhost/CertRegistry");
@@ -54,36 +54,35 @@ public class CertMgr {
 
     public String getMyHalf() throws RemoteException, MalformedURLException,
             NotBoundException {
-        final RSA myKey = new RSA(256);
-        final BigInteger modulus = myKey.publicKey().getModulus();
-        final BigInteger encryptedM = monCert.getPublicKey().encrypt(modulus);
-        return encryptedM.toString(32);
-    }
-
-    public String getMyHalf(final BigInteger myModulus) throws RemoteException,
-            MalformedURLException, NotBoundException {
-        final CertRemote r = (CertRemote) Naming
-                .lookup("rmi://localhost/CertRegistry");
-        monCert = r.getCert("MONITOR");
+        // final RSA myKey = new RSA(256);
+        final BigInteger myModulus = myKey.publicKey().getModulus();
         final BigInteger encryptedM = monCert.getPublicKey().encrypt(myModulus);
         return encryptedM.toString(32);
     }
 
-    public void startConnection() throws UnknownHostException, IOException,
-            NotBoundException, NoSuchAlgorithmException {
+    // public String getMyHalf(final BigInteger myModulus) throws
+    // RemoteException,
+    // MalformedURLException, NotBoundException {
+    // final CertRemote r = (CertRemote) Naming
+    // .lookup("rmi://localhost/CertRegistry");
+    // monCert = r.getCert("MONITOR");
+    // final BigInteger encryptedM = monCert.getPublicKey().encrypt(myModulus);
+    // return encryptedM.toString(32);
+    // }
+
+    public void startConnection(final String pid) throws UnknownHostException,
+            IOException, NotBoundException, NoSuchAlgorithmException {
         final Socket sock = new Socket("localhost", 8180);
         in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
         out = new PrintWriter(sock.getOutputStream(), true);
 
         final BigInteger modulus = myKey.publicKey().getModulus();
-        final String myHalf = getMyHalf(modulus);
-
         boolean result = false;
         String monHalfStr = "";
         boolean required = false;
         String reqCmd = "";
         boolean done = false;
-        for (String msg = in.readLine(); msg != null; msg = in.readLine()) {
+        for (String msg = readDir(); msg != null; msg = readDir()) {
             System.out.println(msg);
             if (msg.startsWith("RESULT")) {
                 result = true;
@@ -91,9 +90,8 @@ public class CertMgr {
                 if (arg.length == 3 && arg[1].equals("IDENT")) {
                     monHalfStr = arg[2];
                     System.out.println("got mon half number: " + monHalfStr);
-                    createShareSecret(monHalfStr);
-                    createKarnChannel();
-                    done = true;
+                    final BigInteger sharedSec = createShareKarnSecret(monHalfStr);
+                    createKarnChannel(sharedSec);
                 }
             }
             if (msg.startsWith("REQUIRE")) {
@@ -104,21 +102,28 @@ public class CertMgr {
                 if (required) {
                     switch (reqCmd) {
                     case "IDENT":
-//                        String cmd = "IDENT " + id + " " + myHalf;
-//                        System.out.println("==> " + cmd);
-//                        out.println(cmd);
+                        String cmd = "IDENT " + pid + " " + getMyHalf();
+                        System.out.println("==> " + cmd);
+                        out.println(cmd);
                         break;
                     }
                 }
             }
-            if (done) {
-                break;
-            }
+        }
+    }
+
+    private String readDir() throws IOException {
+        if (karnIn != null) {
+            log.debug("KARN channel");
+            return karnIn.readLine();
+        } else {
+            log.debug("Plain channel");
+            return in.readLine();
         }
     }
 
     private void testKarnChannel() throws IOException, NoSuchAlgorithmException {
-//        karnOut.println("IDENT " + id);
+        // karnOut.println("IDENT " + id);
         boolean requirePwd = false;
         boolean certResult = false;
         String certNum = "";
@@ -165,7 +170,23 @@ public class CertMgr {
         }
     }
 
-    private void createShareSecret(String monHalfStr) {
+    // private void createShareSecret(String monHalfStr) {
+    // final BigInteger monHalfNum = myKey.decryptNum(new BigInteger(
+    // monHalfStr, 32));
+    // byte myHalf[] = myKey.publicKey().getModulus().toByteArray();
+    // byte monHalf[] = monHalfNum.toByteArray();
+    //
+    // int keySize = 512;
+    // ByteArrayOutputStream bos = new ByteArrayOutputStream(keySize / 8);
+    //
+    // for (int i = 0; i < keySize / 16; i++) {
+    // bos.write(monHalf[i]);
+    // bos.write(myHalf[i]);
+    // }
+    // sharedSecret = new BigInteger(1, bos.toByteArray());
+    // }
+
+    public BigInteger createShareKarnSecret(String monHalfStr) {
         final BigInteger monHalfNum = myKey.decryptNum(new BigInteger(
                 monHalfStr, 32));
         byte myHalf[] = myKey.publicKey().getModulus().toByteArray();
@@ -179,19 +200,21 @@ public class CertMgr {
             bos.write(myHalf[i]);
         }
         sharedSecret = new BigInteger(1, bos.toByteArray());
+        return sharedSecret;
     }
 
-    private void createKarnChannel() throws NoSuchAlgorithmException {
-        karnIn = new KarnBufferedReader(in, sharedSecret);
-        karnOut = new KarnPrintWriter(out, true, sharedSecret);
+    private void createKarnChannel(final BigInteger sharedSec)
+            throws NoSuchAlgorithmException {
+        karnIn = new KarnBufferedReader(in, sharedSec);
+        karnOut = new KarnPrintWriter(out, true, sharedSec);
     }
 
-    public void ident(final String id) throws RemoteException,
-            MalformedURLException, NotBoundException {
-        final BigInteger modulus = myKey.publicKey().getModulus();
-        final String myHalf = getMyHalf(modulus);
-        out.println("IDENT " + id + myHalf);
-    }
+    // public void ident(final String id) throws RemoteException,
+    // MalformedURLException, NotBoundException {
+    // final BigInteger modulus = myKey.publicKey().getModulus();
+    // final String myHalf = getMyHalf(modulus);
+    // out.println("IDENT " + id + myHalf);
+    // }
 
     public void createMyRsaPrivateKey() throws FileNotFoundException,
             IOException {
@@ -219,7 +242,7 @@ public class CertMgr {
 
         CertMgr mgr = new CertMgr();
         log.debug(mgr.getMyHalf());
-        // mgr.startConnection();
+        mgr.startConnection("ct1");
         // mgr.testKarnChannel();
     }
 

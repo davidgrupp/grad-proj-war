@@ -50,6 +50,7 @@ import uc.ap.war.protocol.WarMonitorProxy;
 import uc.ap.war.protocol.WarMonitorProxyLogger;
 import uc.ap.war.protocol.WarPlayer;
 import uc.ap.war.protocol.exp.PlayerIdException;
+import uc.ap.war.protocol.exp.SecurityServiceException;
 
 @SuppressWarnings("serial")
 public class WarClientGUI extends JFrame {
@@ -570,9 +571,11 @@ public class WarClientGUI extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 btnId.setForeground(new Color(0, 0, 0));
                 try {
-                    mon.cmdIdent();
+                    mon.cmdIdentWithCrypto();
                 } catch (PlayerIdException ex) {
                     log.error(ex);
+                } catch (SecurityServiceException ex2) {
+                    log.error(ex2);
                 }
             }
         });

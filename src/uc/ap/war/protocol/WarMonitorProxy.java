@@ -1,26 +1,34 @@
 package uc.ap.war.protocol;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.Writer;
 import java.lang.reflect.InvocationTargetException;
+import java.math.BigInteger;
 import java.net.UnknownHostException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 
 import org.apache.log4j.Logger;
 
 import uc.ap.war.crypto.CertMgrAdapter;
+import uc.ap.war.crypto.KarnBufferedReader;
+import uc.ap.war.crypto.KarnPrintWriter;
 import uc.ap.war.protocol.exp.PlayerIdException;
+import uc.ap.war.protocol.exp.SecurityServiceException;
 
 public class WarMonitorProxy {
     static Logger log = Logger.getLogger(WarMonitorProxy.class);
     private WarMonitorProxyLogger pLog;
-    private MsgGroupParser mgp;
+    private BufferedReader in;
     private PrintWriter out;
     private DirectiveHandler hdlr;
     private MsgGroup lastMsgGroup;
     private CertMgrAdapter cAdp;
+    private KarnBufferedReader karnIn;
+    private KarnPrintWriter karnOut;
 
     public WarMonitorProxy(final Reader monitorReader,
             final Writer monitorWriter, final DirectiveHandler cmdHandler)
@@ -38,7 +46,7 @@ public class WarMonitorProxy {
                 | IllegalAccessException e) {
             log.error(e);
         }
-        this.mgp = new MsgGroupParser(monitorReader);
+        this.in = new BufferedReader(monitorReader);
         this.out = new PrintWriter(monitorWriter, true);
         this.hdlr = cmdHandler;
         if (proxyLogger == null) {
@@ -52,6 +60,16 @@ public class WarMonitorProxy {
             };
         } else {
             pLog = proxyLogger;
+        }
+    }
+
+    private String readDirective() throws IOException {
+        if (karnIn != null) {
+            log.debug("reading from karn channel");
+            return karnIn.readLine();
+        } else {
+            log.debug("reading from unencrypted channel");
+            return in.readLine();
         }
     }
 
@@ -93,10 +111,18 @@ public class WarMonitorProxy {
     public void cmdIdent() throws PlayerIdException {
         issueCmd(CmdHelper.ident(WarPlayer.ins().getId()));
     }
-    
+
     public void cmdIdentWithCrypto() throws PlayerIdException,
-            ClassNotFoundException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, InstantiationException, NoSuchMethodException, SecurityException {
-        issueCmd(CmdHelper.ident(WarPlayer.INS.getId(), cAdp.getMyHalf()));
+            SecurityServiceException {
+        try {
+            issueCmd(CmdHelper.ident(WarPlayer.INS.getId(), cAdp.getMyHalf()));
+        } catch (ClassNotFoundException | IllegalAccessException
+                | IllegalArgumentException | InvocationTargetException
+                | InstantiationException | NoSuchMethodException
+                | SecurityException e) {
+            log.error(e);
+            throw new SecurityServiceException();
+        }
     }
 
     public void cmdPlayerStatus() {
@@ -156,15 +182,12 @@ public class WarMonitorProxy {
 
     public void dispatchMonitorDirectives() throws IOException,
             PlayerIdException {
-        for (MsgGroup mg = mgp.next(); mg != null; mg = mgp.next()) {
-            lastMsgGroup = mg;
+        for (MsgGroup mg = nextMsgGroup(); mg != null; mg = nextMsgGroup()) {
+            // lastMsgGroup = mg;
             pLog.log("[" + new Date() + "]\n");
             pLog.log(mg.toString() + "\n");
 
             switch (mg.getResultArg()) {
-            case ProtoKw.CMD_ID:
-                setupKarnChannel(mg.getResultStr());
-                break;
             case ProtoKw.CMD_PWD:
                 this.hdlr.resultPwd(mg);
                 break;
@@ -226,9 +249,45 @@ public class WarMonitorProxy {
         }
     }
 
-    private boolean setupKarnChannel(String resultStr) {
-        //TODO
-        return false;
+    private MsgGroup nextMsgGroup() throws IOException {
+        final MsgGroup mg = new MsgGroup();
+        String directive = readDirective();
+        while (true) {
+            if (directive == null || directive.equals("")) {
+                log.debug("No incoming message, parsing aborted.");
+                return null;
+            }
+            log.debug("DIRECTIVE: " + directive);
+            if (!mg.addMsg(directive)) {
+                break;
+            }
+            if (mg.getResultArg().equals(ProtoKw.CMD_ID)
+                    && !mg.getResultStr().equals("")) {
+                setupKarnChannel(mg.getResultStr());
+            }
+            directive = readDirective();
+        }
+        lastMsgGroup = mg;
+        return mg;
+    }
+
+    private boolean setupKarnChannel(final String resultStr) {
+        log.debug("Gonna setup karn channel with monitor half key: "
+                + resultStr);
+        try {
+            final BigInteger sharedSecret = cAdp
+                    .createShareKarnSecret(resultStr);
+            karnIn = new KarnBufferedReader(in, sharedSecret);
+            karnOut = new KarnPrintWriter(out, true, sharedSecret);
+            log.debug("karn channel setup successfully.");
+            return true;
+        } catch (IllegalAccessException | IllegalArgumentException
+                | InvocationTargetException | NoSuchMethodException
+                | SecurityException | NoSuchAlgorithmException e) {
+            log.error(e);
+            log.debug("karn channel setup failed.");
+            return false;
+        }
     }
 
     public MsgGroup getLastMsgGroup() {
@@ -236,7 +295,11 @@ public class WarMonitorProxy {
     }
 
     private void issueCmd(final String cmd) {
-        this.out.println(cmd);
+        if (karnOut != null) {
+            karnOut.println(cmd);
+        } else {
+            out.println(cmd);
+        }
         pLog.log(cmd + "\n\n");
     }
 }
