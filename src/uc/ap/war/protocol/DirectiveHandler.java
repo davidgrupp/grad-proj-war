@@ -39,4 +39,6 @@ public interface DirectiveHandler {
 
     public void resultRandomHostPort(final MsgGroup mg);
 
+    public void resultMakeCert(final MsgGroup mg);
+
 }

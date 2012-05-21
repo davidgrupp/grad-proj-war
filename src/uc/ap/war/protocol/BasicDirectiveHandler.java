@@ -61,11 +61,16 @@ public class BasicDirectiveHandler implements DirectiveHandler {
 
     @Override
     public void resultCrackStatus(MsgGroup mg) {
-        
+
     }
 
     @Override
     public void resultGameIds(final MsgGroup mg) {
+        log.debug(mg.getResult());
+    }
+
+    @Override
+    public void resultMakeCert(final MsgGroup mg) {
         log.debug(mg.getResult());
     }
 

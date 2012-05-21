@@ -56,6 +56,20 @@ public class CmdHelper {
         return ProtoKw.CMD_ID + " " + id;
     }
 
+    public static String ident(final String id, final String myHalfKey) {
+        final StringBuilder cmd = new StringBuilder(ProtoKw.CMD_ID);
+        cmd.append(" ").append(id);
+        cmd.append(" ").append(myHalfKey);
+        return cmd.toString();
+    }
+
+    public static String makeCert(final String myPubExp, final String myPubMod) {
+        final StringBuilder cmd = new StringBuilder(ProtoKw.CMD_MAKE_CERT);
+        cmd.append(" ").append(myPubExp);
+        cmd.append(" ").append(myPubMod);
+        return cmd.toString();
+    }
+
     public static String playerStatus() {
         return ProtoKw.CMD_PSTAT;
     }

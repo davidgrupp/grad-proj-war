@@ -4,11 +4,13 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.Writer;
+import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
 import java.util.Date;
 
 import org.apache.log4j.Logger;
 
+import uc.ap.war.crypto.CertMgrAdapter;
 import uc.ap.war.protocol.exp.PlayerIdException;
 
 public class WarMonitorProxy {
@@ -18,6 +20,7 @@ public class WarMonitorProxy {
     private PrintWriter out;
     private DirectiveHandler hdlr;
     private MsgGroup lastMsgGroup;
+    private CertMgrAdapter cAdp;
 
     public WarMonitorProxy(final Reader monitorReader,
             final Writer monitorWriter, final DirectiveHandler cmdHandler)
@@ -29,6 +32,12 @@ public class WarMonitorProxy {
             final Writer monitorWriter, final DirectiveHandler cmdHandler,
             final WarMonitorProxyLogger proxyLogger)
             throws UnknownHostException, IOException {
+        try {
+            this.cAdp = new CertMgrAdapter();
+        } catch (ClassNotFoundException | InstantiationException
+                | IllegalAccessException e) {
+            log.error(e);
+        }
         this.mgp = new MsgGroupParser(monitorReader);
         this.out = new PrintWriter(monitorWriter, true);
         this.hdlr = cmdHandler;
@@ -84,6 +93,11 @@ public class WarMonitorProxy {
     public void cmdIdent() throws PlayerIdException {
         issueCmd(CmdHelper.ident(WarPlayer.ins().getId()));
     }
+    
+    public void cmdIdentWithCrypto() throws PlayerIdException,
+            ClassNotFoundException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, InstantiationException, NoSuchMethodException, SecurityException {
+        issueCmd(CmdHelper.ident(WarPlayer.INS.getId(), cAdp.getMyHalf()));
+    }
 
     public void cmdPlayerStatus() {
         issueCmd(CmdHelper.playerStatus());
@@ -134,6 +148,12 @@ public class WarMonitorProxy {
                 weap, vehi, steel, copper, oil, glass, plastic, rubber));
     }
 
+    public void cmdMakeCert() {
+        final String myPubExp = cAdp.getMyPublicKeyExp();
+        final String myPubMod = cAdp.getMyPublicKeyMod();
+        issueCmd(CmdHelper.makeCert(myPubExp, myPubMod));
+    }
+
     public void dispatchMonitorDirectives() throws IOException,
             PlayerIdException {
         for (MsgGroup mg = mgp.next(); mg != null; mg = mgp.next()) {
@@ -142,6 +162,9 @@ public class WarMonitorProxy {
             pLog.log(mg.toString() + "\n");
 
             switch (mg.getResultArg()) {
+            case ProtoKw.CMD_ID:
+                setupKarnChannel(mg.getResultStr());
+                break;
             case ProtoKw.CMD_PWD:
                 this.hdlr.resultPwd(mg);
                 break;
@@ -166,6 +189,8 @@ public class WarMonitorProxy {
             case ProtoKw.CMD_CRACK_COOKIE:
                 this.hdlr.resultCrackCookie(mg);
                 break;
+            case ProtoKw.CMD_MAKE_CERT:
+                this.hdlr.resultMakeCert(mg);
             default:
                 log.debug("unexpected result argument: " + mg.getResultArg());
             }
@@ -199,6 +224,11 @@ public class WarMonitorProxy {
                 log.debug("No command required by monitor, free form transaction begins...");
             }
         }
+    }
+
+    private boolean setupKarnChannel(String resultStr) {
+        //TODO
+        return false;
     }
 
     public MsgGroup getLastMsgGroup() {

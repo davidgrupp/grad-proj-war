@@ -1,4 +1,4 @@
-package uc.ap.war.crypto;
+
 
 // DHKeyObject.java                                              -*- Java -*-
 //    The DH key object
