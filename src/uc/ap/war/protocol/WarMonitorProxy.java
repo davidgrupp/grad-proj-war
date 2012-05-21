@@ -8,6 +8,7 @@ import java.io.Writer;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigInteger;
 import java.net.UnknownHostException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 
@@ -29,6 +30,7 @@ public class WarMonitorProxy {
     private CertMgrAdapter cAdp;
     private KarnBufferedReader karnIn;
     private KarnPrintWriter karnOut;
+    private boolean cryptoReady;
 
     public WarMonitorProxy(final Reader monitorReader,
             final Writer monitorWriter, final DirectiveHandler cmdHandler)
@@ -49,6 +51,7 @@ public class WarMonitorProxy {
         this.in = new BufferedReader(monitorReader);
         this.out = new PrintWriter(monitorWriter, true);
         this.hdlr = cmdHandler;
+        this.cryptoReady = false;
         if (proxyLogger == null) {
             // if no custom proxy logger is supplied, just log to the class
             // logger
@@ -108,11 +111,15 @@ public class WarMonitorProxy {
                 .getPort()));
     }
 
-    public void cmdIdent() throws PlayerIdException {
-        issueCmd(CmdHelper.ident(WarPlayer.ins().getId()));
+    public void cmdIdent() throws PlayerIdException, SecurityServiceException {
+        if (cryptoReady) {
+            cmdIdentWithCrypto();
+        } else {
+            issueCmd(CmdHelper.ident(WarPlayer.ins().getId()));
+        }
     }
 
-    public void cmdIdentWithCrypto() throws PlayerIdException,
+    private void cmdIdentWithCrypto() throws PlayerIdException,
             SecurityServiceException {
         try {
             issueCmd(CmdHelper.ident(WarPlayer.INS.getId(), cAdp.getMyHalf()));
@@ -174,20 +181,30 @@ public class WarMonitorProxy {
                 weap, vehi, steel, copper, oil, glass, plastic, rubber));
     }
 
-    public void cmdMakeCert() {
-        final String myPubExp = cAdp.getMyPublicKeyExp();
-        final String myPubMod = cAdp.getMyPublicKeyMod();
-        issueCmd(CmdHelper.makeCert(myPubExp, myPubMod));
+    public void cmdMakeCert() throws SecurityServiceException {
+        try {
+            final String myPubExp = cAdp.getMyPublicKeyExpStr();
+            final String myPubMod = cAdp.getMyPublicKeyModStr();
+            issueCmd(CmdHelper.makeCert(myPubExp, myPubMod));
+        } catch (NoSuchMethodException | SecurityException
+                | IllegalAccessException | IllegalArgumentException
+                | InvocationTargetException e) {
+            log.error(e);
+            throw new SecurityServiceException();
+        }
     }
 
     public void dispatchMonitorDirectives() throws IOException,
-            PlayerIdException {
+            PlayerIdException, SecurityServiceException {
         for (MsgGroup mg = nextMsgGroup(); mg != null; mg = nextMsgGroup()) {
             // lastMsgGroup = mg;
             pLog.log("[" + new Date() + "]\n");
             pLog.log(mg.toString() + "\n");
 
             switch (mg.getResultArg()) {
+            case ProtoKw.CMD_CERT:
+                setupCert(mg);
+                break;
             case ProtoKw.CMD_PWD:
                 this.hdlr.resultPwd(mg);
                 break;
@@ -246,6 +263,29 @@ public class WarMonitorProxy {
             default:
                 log.debug("No command required by monitor, free form transaction begins...");
             }
+        }
+    }
+
+    private void setupCert(final MsgGroup mg) {
+        try {
+            final String monNum = mg.getResultStr().split("\\s+")[1];
+            final MessageDigest mdsha = MessageDigest.getInstance("SHA-1");
+            mdsha.update(cAdp.getMyPublicKeyExp().toByteArray());
+            mdsha.update(cAdp.getMyPublicKeyMod().toByteArray());
+
+            final BigInteger m = new BigInteger(1, mdsha.digest());
+            final BigInteger p = new BigInteger(monNum, 32);
+            final BigInteger certNumber = cAdp.encryptWithMonPubKey(p);
+            if (m.compareTo(certNumber) == 0) {
+                // TODO: plug-in certificate code
+                log.debug("got it!");
+            } else {
+                log.debug("don't got it");
+            }
+        } catch (NoSuchAlgorithmException | NoSuchMethodException
+                | SecurityException | IllegalAccessException
+                | IllegalArgumentException | InvocationTargetException e) {
+            log.error(e);
         }
     }
 

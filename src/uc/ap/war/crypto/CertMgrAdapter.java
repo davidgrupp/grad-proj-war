@@ -23,8 +23,9 @@ public class CertMgrAdapter {
             IllegalAccessException, IllegalArgumentException,
             InvocationTargetException, InstantiationException,
             NoSuchMethodException, SecurityException {
-        Method getMyHalf = certMgrC.getMethod("getMyHalf", null);
-        String myHalf = (String) getMyHalf.invoke(certMgr);
+        final Method getMyHalf = certMgrC.getMethod("getMyHalf");
+        final String myHalf = (String) getMyHalf.invoke(certMgr);
+        log.debug("My half: " + myHalf);
         return myHalf;
     }
 
@@ -36,20 +37,53 @@ public class CertMgrAdapter {
         PropertyConfigurator.configure("log4j.properties");
         final CertMgrAdapter adp = new CertMgrAdapter();
         final String myHalf = adp.getMyHalf();
-        log.debug("My half is " + myHalf);
+        log.debug("My half: " + myHalf);
         final BigInteger karnSec = adp
                 .createShareKarnSecret("5dmqccpo33ehiisrtlb6mb2tuq1h8vvjemarfqbcfhrnr39ed8m");
         log.debug("karn secret is " + karnSec.toString(32));
     }
 
-    public String getMyPublicKeyExp() {
-        // TODO Auto-generated method stub
-        return null;
+    public BigInteger getMyPublicKeyExp() throws NoSuchMethodException,
+            SecurityException, IllegalAccessException,
+            IllegalArgumentException, InvocationTargetException {
+        final Method getMyPublicKeyExp = certMgrC
+                .getMethod("getMyPublicKeyExp");
+        final BigInteger exp = (BigInteger) getMyPublicKeyExp.invoke(certMgr);
+        log.debug("my public key exp: " + exp);
+        return exp;
     }
 
-    public String getMyPublicKeyMod() {
-        // TODO Auto-generated method stub
-        return null;
+    public BigInteger encryptWithMonPubKey(final BigInteger bi)
+            throws NoSuchMethodException, SecurityException,
+            IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+        final Method encryptWithMonPubKey = certMgrC.getMethod(
+                "encryptWithMonPubKey", new Class[] { BigInteger.class });
+        final BigInteger encryptedBi = (BigInteger) encryptWithMonPubKey
+                .invoke(certMgr, new BigInteger[] { bi });
+        log.debug("encrypted msg: " + encryptedBi);
+        return encryptedBi;
+    }
+
+    public String getMyPublicKeyExpStr() throws NoSuchMethodException,
+            SecurityException, IllegalAccessException,
+            IllegalArgumentException, InvocationTargetException {
+        return getMyPublicKeyExp().toString(32);
+    }
+
+    public String getMyPublicKeyModStr() throws IllegalAccessException,
+            IllegalArgumentException, InvocationTargetException,
+            NoSuchMethodException, SecurityException {
+        return getMyPublicKeyMod().toString(32);
+    }
+
+    public BigInteger getMyPublicKeyMod() throws IllegalAccessException,
+            IllegalArgumentException, InvocationTargetException,
+            NoSuchMethodException, SecurityException {
+        final Method getMyPublicKeyMod = certMgrC
+                .getMethod("getMyPublicKeyMod");
+        final BigInteger mod = (BigInteger) getMyPublicKeyMod.invoke(certMgr);
+        log.debug("my public key mod: " + mod);
+        return mod;
     }
 
     public BigInteger createShareKarnSecret(final String monHalfKey)

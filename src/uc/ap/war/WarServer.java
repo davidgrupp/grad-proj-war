@@ -15,6 +15,7 @@ import uc.ap.war.protocol.DirectiveHandler;
 import uc.ap.war.protocol.WarMonitorProxy;
 import uc.ap.war.protocol.WarMonitorProxyLogger;
 import uc.ap.war.protocol.exp.PlayerIdException;
+import uc.ap.war.protocol.exp.SecurityServiceException;
 
 public class WarServer implements Runnable {
     static Logger log = Logger.getLogger(WarServer.class);
@@ -62,7 +63,8 @@ public class WarServer implements Runnable {
                                     .getOutputStream());
                             new WarMonitorProxy(r, w, hdlr, pLog)
                                     .dispatchMonitorDirectives();
-                        } catch (IOException | PlayerIdException e) {
+                        } catch (IOException | PlayerIdException
+                                | SecurityServiceException e) {
                             log.error(e);
                         }
                     }

@@ -37,6 +37,7 @@ public final class ProtoKw {
     public static final String CMD_WAR_TRUCE_OFFER = "WAR_TRUCE_OFFER";
     public static final String CMD_WAR_TRUCE_RESP = "WAR_TRUCE_RESPONSE";
     public static final String CMD_MAKE_CERT = "MAKE_CERTIFICATE";
+    public static final String CMD_CERT = "CERTIFICATE";
 
     // resources
     public static final String RES_COMPUTERS = "computers";

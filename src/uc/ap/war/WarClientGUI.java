@@ -134,6 +134,7 @@ public class WarClientGUI extends JFrame {
     private JTextField tfOtherGlass;
     private JTextField tfOtherPlastic;
     private JTextField tfOtherRubber;
+    private JButton btnMakeCert;
 
     public WarClientGUI() {
         super.setPreferredSize(new Dimension(FRAME_WIDTH, 700));
@@ -261,9 +262,8 @@ public class WarClientGUI extends JFrame {
                         public void run() {
                             try {
                                 mon.dispatchMonitorDirectives();
-                            } catch (PlayerIdException e) {
-                                log.error(e);
-                            } catch (IOException e) {
+                            } catch (PlayerIdException | IOException
+                                    | SecurityServiceException e) {
                                 log.error(e);
                             }
                         }
@@ -289,7 +289,20 @@ public class WarClientGUI extends JFrame {
         });
         pane.add(btnDisconn);
 
-        btnGameIdents = new JButton("Get Game Idents:");
+        btnMakeCert = new JButton("Make Certificate");
+        btnMakeCert.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    mon.cmdMakeCert();
+                } catch (SecurityServiceException e1) {
+                    log.error(e1);
+                }
+            }
+        });
+        pane.add(btnMakeCert);
+
+        btnGameIdents = new JButton("Get Game Idents");
         btnGameIdents.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -571,7 +584,7 @@ public class WarClientGUI extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 btnId.setForeground(new Color(0, 0, 0));
                 try {
-                    mon.cmdIdentWithCrypto();
+                    mon.cmdIdent();
                 } catch (PlayerIdException ex) {
                     log.error(ex);
                 } catch (SecurityServiceException ex2) {

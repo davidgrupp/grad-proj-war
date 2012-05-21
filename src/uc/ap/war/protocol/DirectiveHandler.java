@@ -1,6 +1,7 @@
 package uc.ap.war.protocol;
 
 import uc.ap.war.protocol.exp.PlayerIdException;
+import uc.ap.war.protocol.exp.SecurityServiceException;
 
 public interface DirectiveHandler {
 
@@ -10,7 +11,7 @@ public interface DirectiveHandler {
     public void requireHostPort(final WarMonitorProxy mon);
 
     public void requireIdent(final WarMonitorProxy mon)
-            throws PlayerIdException;
+            throws PlayerIdException, SecurityServiceException;
 
     public void requirePwd(final WarMonitorProxy mon);
 

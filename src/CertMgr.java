@@ -33,23 +33,35 @@ public class CertMgr {
     private KarnBufferedReader karnIn;
     private KarnPrintWriter karnOut;
 
-    public CertMgr() throws MalformedURLException, RemoteException,
-            NotBoundException {
-        myKey = new RSA(256);
+    public CertMgr() throws NotBoundException, FileNotFoundException,
+            IOException {
+        // myKey = new RSA(256);
+        buildRsaPrivateKey();
         CertRemote r = (CertRemote) Naming
                 .lookup("rmi://localhost/CertRegistry");
         monCert = r.getCert("MONITOR");
         log.info("get cert " + monCert);
     }
 
-    public String getMyPublicKeyExp() {
-        // TODO Auto-generated method stub
-        return null;
+    public BigInteger encryptWithMonPubKey(final BigInteger bi) {
+        return monCert.getPublicKey().encrypt(bi);
     }
 
-    public String getMyPublicKeyMod() {
-        // TODO Auto-generated method stub
-        return null;
+    private void buildRsaPrivateKey() throws FileNotFoundException, IOException {
+        myKey = new RSA(); /* Default is 512-bit key size */
+        ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(
+                "PlayerKey"));
+        oos.writeObject(myKey);
+        oos.close();
+        log.info("player rsa key built.");
+    }
+
+    public BigInteger getMyPublicKeyExp() {
+        return myKey.publicKey().getExponent();
+    }
+
+    public BigInteger getMyPublicKeyMod() {
+        return myKey.publicKey().getModulus();
     }
 
     public String getMyHalf() throws RemoteException, MalformedURLException,

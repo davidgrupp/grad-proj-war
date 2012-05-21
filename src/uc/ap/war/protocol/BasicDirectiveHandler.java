@@ -5,6 +5,7 @@ import java.util.HashMap;
 import org.apache.log4j.Logger;
 
 import uc.ap.war.protocol.exp.PlayerIdException;
+import uc.ap.war.protocol.exp.SecurityServiceException;
 
 public class BasicDirectiveHandler implements DirectiveHandler {
     private static Logger log = Logger.getLogger(BasicDirectiveHandler.class);
@@ -21,7 +22,7 @@ public class BasicDirectiveHandler implements DirectiveHandler {
 
     @Override
     public void requireIdent(final WarMonitorProxy mon)
-            throws PlayerIdException {
+            throws PlayerIdException, SecurityServiceException {
         mon.cmdIdent();
     }
 
