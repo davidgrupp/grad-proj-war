@@ -119,10 +119,10 @@ public class WarMonitorProxy {
         }
     }
 
-    private void cmdIdentWithCrypto() throws PlayerIdException,
+    public void cmdIdentWithCrypto() throws PlayerIdException,
             SecurityServiceException {
         try {
-            issueCmd(CmdHelper.ident(WarPlayer.INS.getId(), cAdp.getMyHalf()));
+            issueCmd(CmdHelper.ident(WarPlayer.INS.getId(), cAdp.getParticipantHalf()));
         } catch (ClassNotFoundException | IllegalAccessException
                 | IllegalArgumentException | InvocationTargetException
                 | InstantiationException | NoSuchMethodException

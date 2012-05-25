@@ -453,6 +453,19 @@ public class WarClientGUI extends JFrame {
         tfOtherRubber.setEnabled(false);
         pane.add(tfOtherRubber);
 
+        final JButton btnIdentEnc = new JButton("Ident Enc");
+        btnIdentEnc.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    mon.cmdIdentWithCrypto();
+                } catch (PlayerIdException | SecurityServiceException e1) {
+                    log.error(e1);
+                }
+            }
+        });
+        pane.add(btnIdentEnc);
+
         return pane;
     }
 
