@@ -1,4 +1,4 @@
-package uc.ap.war.protocol;
+package uc.ap.war.core.model;
 
 import java.util.Vector;
 

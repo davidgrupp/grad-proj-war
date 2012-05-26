@@ -19,7 +19,6 @@ import java.io.Writer;
 import java.net.Socket;
 import java.util.HashMap;
 
-import javax.swing.AbstractButton;
 import javax.swing.BorderFactory;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
@@ -40,17 +39,19 @@ import javax.swing.text.NumberFormatter;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
-import uc.ap.war.protocol.BasicDirectiveHandler;
-import uc.ap.war.protocol.MsgGroup;
-import uc.ap.war.protocol.ProtoKw;
-import uc.ap.war.protocol.ProtocolHelper;
-import uc.ap.war.protocol.WarInfo;
-import uc.ap.war.protocol.WarModelManager;
-import uc.ap.war.protocol.WarMonitorProxy;
-import uc.ap.war.protocol.WarMonitorProxyLogger;
-import uc.ap.war.protocol.WarPlayer;
-import uc.ap.war.protocol.exp.PlayerIdException;
-import uc.ap.war.protocol.exp.SecurityServiceException;
+import uc.ap.war.core.BasicDirectiveHandler;
+import uc.ap.war.core.WarMonitorProxy;
+import uc.ap.war.core.WarMonitorProxyLogger;
+import uc.ap.war.core.crypto.CertMgrAdapter;
+import uc.ap.war.core.exp.PlayerIdException;
+import uc.ap.war.core.exp.SecurityServiceException;
+import uc.ap.war.core.exp.SecurityServiceNotReadyException;
+import uc.ap.war.core.model.WarInfo;
+import uc.ap.war.core.model.WarModelManager;
+import uc.ap.war.core.model.WarPlayer;
+import uc.ap.war.core.protocol.DirectiveHelper;
+import uc.ap.war.core.protocol.MsgGroup;
+import uc.ap.war.core.protocol.ProtoKw;
 
 @SuppressWarnings("serial")
 public class WarClientGUI extends JFrame {
@@ -135,6 +136,7 @@ public class WarClientGUI extends JFrame {
     private JTextField tfOtherPlastic;
     private JTextField tfOtherRubber;
     private JButton btnMakeCert;
+    private JComboBox<Integer> cbRegPort;
 
     public WarClientGUI() {
         super.setPreferredSize(new Dimension(FRAME_WIDTH, 700));
@@ -236,15 +238,30 @@ public class WarClientGUI extends JFrame {
         cbMonPort.addItem(8160);
         pane.add(cbMonPort);
 
+        pane.add(new JLabel("RMI Registry Port"));
+        cbRegPort = new JComboBox<Integer>();
+        cbRegPort.addItem(1099);
+        cbRegPort.addItem(1098);
+        cbRegPort.addItem(1097);
+        pane.add(cbRegPort);
+
         btnConn = new JButton("Connect");
         btnConn.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent arg0) {
                 final ClientDirectiveHandler cmdr = new ClientDirectiveHandler();
                 final String h = (String) cbMonHost.getSelectedItem();
-                final int p = (Integer) cbMonPort.getSelectedItem();
+                final int monP = (Integer) cbMonPort.getSelectedItem();
+                final int regP = (Integer) cbRegPort.getSelectedItem();
                 try {
-                    monitorSock = new Socket(h, p);
+                    CertMgrAdapter.ins().init(h, regP);
+                } catch (SecurityServiceNotReadyException e) {
+                    log.error(e);
+                    // TODO: disable security relevant ui controls and notify
+                    // user this failure
+                }
+                try {
+                    monitorSock = new Socket(h, monP);
                     final Reader r = new InputStreamReader(monitorSock
                             .getInputStream());
                     final Writer w = new OutputStreamWriter(monitorSock
@@ -947,7 +964,7 @@ public class WarClientGUI extends JFrame {
 
         @Override
         public void resultCrackCookie(final MsgGroup mg) {
-            final String playerCookie = ProtocolHelper.parseCrackCookie(mg);
+            final String playerCookie = DirectiveHelper.parseCrackCookie(mg);
             if (playerCookie != null) {
                 tfOtherCookie.setText(playerCookie);
             }
@@ -955,7 +972,7 @@ public class WarClientGUI extends JFrame {
 
         @Override
         public void resultCrackHostPort(final MsgGroup mg) {
-            final String[] playerHp = ProtocolHelper.parseCrackHp(mg);
+            final String[] playerHp = DirectiveHelper.parseCrackHp(mg);
             if (playerHp != null && playerHp.length == 3) {
                 tfOtherId.setText(playerHp[0]);
                 tfOtherHost.setText(playerHp[1]);
@@ -965,7 +982,7 @@ public class WarClientGUI extends JFrame {
 
         @Override
         public void resultCrackStatus(final MsgGroup mg) {
-            final HashMap<String, Integer> res = ProtocolHelper
+            final HashMap<String, Integer> res = DirectiveHelper
                     .parseCrackStatus(mg);
             tfOtherRupy.setText(String.valueOf(res.get(ProtoKw.RES_RUPYULARS)));
             tfOtherComputer.setText(String.valueOf(res
@@ -984,7 +1001,7 @@ public class WarClientGUI extends JFrame {
 
         @Override
         public void resultGameIds(final MsgGroup mg) {
-            final String[] gameIds = ProtocolHelper.parseGameIds(mg);
+            final String[] gameIds = DirectiveHelper.parseGameIds(mg);
             log.debug("Got game ids: " + gameIds);
             cbCrackTargetIds
                     .setModel(new DefaultComboBoxModel<String>(gameIds));
@@ -1001,7 +1018,7 @@ public class WarClientGUI extends JFrame {
 
         @Override
         public void resultRandomHostPort(final MsgGroup mg) {
-            final String[] playerHp = ProtocolHelper.parseCrackHp(mg);
+            final String[] playerHp = DirectiveHelper.parseCrackHp(mg);
             if (playerHp != null && playerHp.length == 3) {
                 tfOtherId.setText(playerHp[0]);
                 tfOtherHost.setText(playerHp[1]);

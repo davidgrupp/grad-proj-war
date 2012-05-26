@@ -10,6 +10,7 @@ import javax.swing.text.DefaultFormatter;
 /**
  * A regular expression based implementation of <code>AbstractFormatter</code>.
  */
+@SuppressWarnings("serial")
 public class RegexFormatter extends DefaultFormatter {
     private Pattern pattern;
     private Matcher matcher;

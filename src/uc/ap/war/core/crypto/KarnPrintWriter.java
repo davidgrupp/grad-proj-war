@@ -1,4 +1,4 @@
-package uc.ap.war.crypto;
+package uc.ap.war.core.crypto;
 
 /******* Class KarnPrintWriter **********
   Copyright (c) 2004 Coleman Kane
@@ -8,10 +8,13 @@ package uc.ap.war.crypto;
                Computer Science
                20-ECES-694 Advanced Topics in Computer Science
 **/
-import java.io.*;
-import java.lang.*;
-import java.math.*;
-import java.security.*;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
+import java.io.Writer;
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 
 public class KarnPrintWriter extends PrintWriter {
 	/******************************************************

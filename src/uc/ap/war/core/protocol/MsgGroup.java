@@ -1,4 +1,4 @@
-package uc.ap.war.protocol;
+package uc.ap.war.core.protocol;
 
 import org.apache.log4j.Logger;
 
@@ -11,7 +11,7 @@ public class MsgGroup {
     private StringBuilder msgs;
     private boolean completed;
 
-    MsgGroup() {
+    public MsgGroup() {
         resultArg = "";
         resultStr = "";
         cmdError = "";
@@ -20,7 +20,7 @@ public class MsgGroup {
         msgs = new StringBuilder();
     }
 
-    boolean addMsg(final String msg) {
+    public boolean addMsg(final String msg) {
         if (msg == null) {
             completed = true;
             return false;

@@ -1,7 +1,8 @@
-package uc.ap.war.protocol;
+package uc.ap.war.core;
 
-import uc.ap.war.protocol.exp.PlayerIdException;
-import uc.ap.war.protocol.exp.SecurityServiceException;
+import uc.ap.war.core.exp.PlayerIdException;
+import uc.ap.war.core.exp.SecurityServiceException;
+import uc.ap.war.core.protocol.MsgGroup;
 
 public interface DirectiveHandler {
 

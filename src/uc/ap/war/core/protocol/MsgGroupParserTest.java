@@ -1,4 +1,4 @@
-package uc.ap.war.protocol;
+package uc.ap.war.core.protocol;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;

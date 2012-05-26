@@ -1,11 +1,10 @@
-package uc.ap.war.protocol;
+package uc.ap.war.core;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.Writer;
-import java.lang.reflect.InvocationTargetException;
 import java.math.BigInteger;
 import java.net.UnknownHostException;
 import java.security.MessageDigest;
@@ -14,11 +13,15 @@ import java.util.Date;
 
 import org.apache.log4j.Logger;
 
-import uc.ap.war.crypto.CertMgrAdapter;
-import uc.ap.war.crypto.KarnBufferedReader;
-import uc.ap.war.crypto.KarnPrintWriter;
-import uc.ap.war.protocol.exp.PlayerIdException;
-import uc.ap.war.protocol.exp.SecurityServiceException;
+import uc.ap.war.core.crypto.CertMgrAdapter;
+import uc.ap.war.core.crypto.KarnBufferedReader;
+import uc.ap.war.core.crypto.KarnPrintWriter;
+import uc.ap.war.core.exp.PlayerIdException;
+import uc.ap.war.core.exp.SecurityServiceException;
+import uc.ap.war.core.model.WarPlayer;
+import uc.ap.war.core.protocol.CmdHelper;
+import uc.ap.war.core.protocol.MsgGroup;
+import uc.ap.war.core.protocol.ProtoKw;
 
 public class WarMonitorProxy {
     static Logger log = Logger.getLogger(WarMonitorProxy.class);
@@ -30,7 +33,6 @@ public class WarMonitorProxy {
     private CertMgrAdapter cAdp;
     private KarnBufferedReader karnIn;
     private KarnPrintWriter karnOut;
-    private boolean cryptoReady;
 
     public WarMonitorProxy(final Reader monitorReader,
             final Writer monitorWriter, final DirectiveHandler cmdHandler)
@@ -42,16 +44,10 @@ public class WarMonitorProxy {
             final Writer monitorWriter, final DirectiveHandler cmdHandler,
             final WarMonitorProxyLogger proxyLogger)
             throws UnknownHostException, IOException {
-        try {
-            this.cAdp = new CertMgrAdapter();
-        } catch (ClassNotFoundException | InstantiationException
-                | IllegalAccessException e) {
-            log.error(e);
-        }
+        this.cAdp = CertMgrAdapter.ins();
         this.in = new BufferedReader(monitorReader);
         this.out = new PrintWriter(monitorWriter, true);
         this.hdlr = cmdHandler;
-        this.cryptoReady = false;
         if (proxyLogger == null) {
             // if no custom proxy logger is supplied, just log to the class
             // logger
@@ -63,16 +59,6 @@ public class WarMonitorProxy {
             };
         } else {
             pLog = proxyLogger;
-        }
-    }
-
-    private String readDirective() throws IOException {
-        if (karnIn != null) {
-            log.debug("reading from karn channel");
-            return karnIn.readLine();
-        } else {
-            log.debug("reading from unencrypted channel");
-            return in.readLine();
         }
     }
 
@@ -112,7 +98,7 @@ public class WarMonitorProxy {
     }
 
     public void cmdIdent() throws PlayerIdException, SecurityServiceException {
-        if (cryptoReady) {
+        if (cAdp.karnReady()) {
             cmdIdentWithCrypto();
         } else {
             issueCmd(CmdHelper.ident(WarPlayer.ins().getId()));
@@ -121,15 +107,13 @@ public class WarMonitorProxy {
 
     public void cmdIdentWithCrypto() throws PlayerIdException,
             SecurityServiceException {
-        try {
-            issueCmd(CmdHelper.ident(WarPlayer.INS.getId(), cAdp.getParticipantHalf()));
-        } catch (ClassNotFoundException | IllegalAccessException
-                | IllegalArgumentException | InvocationTargetException
-                | InstantiationException | NoSuchMethodException
-                | SecurityException e) {
-            log.error(e);
-            throw new SecurityServiceException();
-        }
+        issueCmd(CmdHelper.ident(WarPlayer.ins().getId(), cAdp.getMyHalfStr()));
+    }
+
+    public void cmdMakeCert() throws SecurityServiceException {
+        final String myPubExp = cAdp.getMyPublicKeyExpStr();
+        final String myPubMod = cAdp.getMyPublicKeyModStr();
+        issueCmd(CmdHelper.makeCert(myPubExp, myPubMod));
     }
 
     public void cmdPlayerStatus() {
@@ -166,7 +150,7 @@ public class WarMonitorProxy {
 
     public void cmdTradeReq(String myRes, String myResAmt, String targetId,
             String forRes, String forResAmt) throws PlayerIdException {
-        issueCmd(CmdHelper.tradeReq(WarPlayer.INS.getId(), myRes, myResAmt,
+        issueCmd(CmdHelper.tradeReq(WarPlayer.ins().getId(), myRes, myResAmt,
                 targetId, forRes, forResAmt));
     }
 
@@ -177,21 +161,8 @@ public class WarMonitorProxy {
     public void cmdWarTruce(String id, int rupy, int comp, int weap, int vehi,
             int steel, int copper, int oil, int glass, int plastic, int rubber)
             throws PlayerIdException {
-        issueCmd(CmdHelper.warTruce(WarPlayer.INS.getId(), id, rupy, comp,
+        issueCmd(CmdHelper.warTruce(WarPlayer.ins().getId(), id, rupy, comp,
                 weap, vehi, steel, copper, oil, glass, plastic, rubber));
-    }
-
-    public void cmdMakeCert() throws SecurityServiceException {
-        try {
-            final String myPubExp = cAdp.getMyPublicKeyExpStr();
-            final String myPubMod = cAdp.getMyPublicKeyModStr();
-            issueCmd(CmdHelper.makeCert(myPubExp, myPubMod));
-        } catch (NoSuchMethodException | SecurityException
-                | IllegalAccessException | IllegalArgumentException
-                | InvocationTargetException e) {
-            log.error(e);
-            throw new SecurityServiceException();
-        }
     }
 
     public void dispatchMonitorDirectives() throws IOException,
@@ -203,7 +174,7 @@ public class WarMonitorProxy {
 
             switch (mg.getResultArg()) {
             case ProtoKw.CMD_CERT:
-                setupCert(mg);
+                validateMonCert(mg);
                 break;
             case ProtoKw.CMD_PWD:
                 this.hdlr.resultPwd(mg);
@@ -266,27 +237,17 @@ public class WarMonitorProxy {
         }
     }
 
-    private void setupCert(final MsgGroup mg) {
-        try {
-            final String monNum = mg.getResultStr().split("\\s+")[1];
-            final MessageDigest mdsha = MessageDigest.getInstance("SHA-1");
-            mdsha.update(cAdp.getMyPublicKeyExp().toByteArray());
-            mdsha.update(cAdp.getMyPublicKeyMod().toByteArray());
+    public MsgGroup getLastMsgGroup() {
+        return this.lastMsgGroup;
+    }
 
-            final BigInteger m = new BigInteger(1, mdsha.digest());
-            final BigInteger p = new BigInteger(monNum, 32);
-            final BigInteger certNumber = cAdp.encryptWithMonPubKey(p);
-            if (m.compareTo(certNumber) == 0) {
-                // TODO: plug-in certificate code
-                log.debug("got it!");
-            } else {
-                log.debug("don't got it");
-            }
-        } catch (NoSuchAlgorithmException | NoSuchMethodException
-                | SecurityException | IllegalAccessException
-                | IllegalArgumentException | InvocationTargetException e) {
-            log.error(e);
+    private void issueCmd(final String cmd) {
+        if (karnOut != null) {
+            karnOut.println(cmd);
+        } else {
+            out.println(cmd);
         }
+        pLog.log(cmd + "\n\n");
     }
 
     private MsgGroup nextMsgGroup() throws IOException {
@@ -311,35 +272,51 @@ public class WarMonitorProxy {
         return mg;
     }
 
-    private boolean setupKarnChannel(final String resultStr) {
-        log.debug("Gonna setup karn channel with monitor half key: "
-                + resultStr);
+    private String readDirective() throws IOException {
+        if (karnIn != null) {
+            log.debug("reading from karn channel");
+            return karnIn.readLine();
+        } else {
+            log.debug("reading from unencrypted channel");
+            return in.readLine();
+        }
+    }
+
+    private void validateMonCert(final MsgGroup mg) {
         try {
-            final BigInteger sharedSecret = cAdp
-                    .createShareKarnSecret(resultStr);
-            karnIn = new KarnBufferedReader(in, sharedSecret);
-            karnOut = new KarnPrintWriter(out, true, sharedSecret);
-            log.debug("karn channel setup successfully.");
-            return true;
-        } catch (IllegalAccessException | IllegalArgumentException
-                | InvocationTargetException | NoSuchMethodException
-                | SecurityException | NoSuchAlgorithmException e) {
+            final String monNum = mg.getResultStr().split("\\s+")[1];
+            final MessageDigest mdsha = MessageDigest.getInstance("SHA-1");
+            mdsha.update(cAdp.getMyPublicKeyExp().toByteArray());
+            mdsha.update(cAdp.getMyPublicKeyMod().toByteArray());
+
+            final BigInteger m = new BigInteger(1, mdsha.digest());
+            final BigInteger p = new BigInteger(monNum, 32);
+            final BigInteger certNumber = cAdp.encryptWithMonPubKey(p);
+            if (m.compareTo(certNumber) == 0) {
+                // TODO: plug-in certificate code
+                log.debug("got it!");
+            } else {
+                log.debug("don't got it");
+            }
+        } catch (SecurityServiceException | NoSuchAlgorithmException e) {
+            log.error(e);
+        }
+    }
+
+    private void setupKarnChannel(final String resultStr) {
+        try {
+            if (karnIn == null && karnOut == null) {
+                log.debug("Gonna setup karn channel with monitor half key: "
+                        + resultStr);
+                final BigInteger sharedSecret = cAdp
+                        .getShareKarnSecret(resultStr);
+                karnIn = new KarnBufferedReader(in, sharedSecret);
+                karnOut = new KarnPrintWriter(out, true, sharedSecret);
+                log.debug("karn channel setup successfully.");
+            }
+        } catch (NoSuchAlgorithmException | SecurityServiceException e) {
             log.error(e);
             log.debug("karn channel setup failed.");
-            return false;
         }
-    }
-
-    public MsgGroup getLastMsgGroup() {
-        return this.lastMsgGroup;
-    }
-
-    private void issueCmd(final String cmd) {
-        if (karnOut != null) {
-            karnOut.println(cmd);
-        } else {
-            out.println(cmd);
-        }
-        pLog.log(cmd + "\n\n");
     }
 }

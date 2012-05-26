@@ -1,4 +1,4 @@
-package uc.ap.war.protocol;
+package uc.ap.war.core.model;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -7,7 +7,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
 public class WarModelManager {
-	private static final String DEFAULT_ID = "";
+	private static final String DEFAULT_ID = "default";
 
 	public static void storePlayer(final String playerId) throws IOException {
 		FileOutputStream fOut = new FileOutputStream(dataFile(playerId));

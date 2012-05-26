@@ -1,4 +1,4 @@
-package uc.ap.war.protocol;
+package uc.ap.war.core.protocol;
 
 public class CmdHelper {
 

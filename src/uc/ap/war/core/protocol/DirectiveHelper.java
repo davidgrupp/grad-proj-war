@@ -1,4 +1,4 @@
-package uc.ap.war.protocol;
+package uc.ap.war.core.protocol;
 
 import java.util.HashMap;
 import java.util.regex.Matcher;
@@ -6,10 +6,8 @@ import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
 
-public class ProtocolHelper {
-    private static final Logger log = Logger.getLogger(ProtocolHelper.class);
-    private static final Pattern PAT_CRACK_STATUC = Pattern.compile("^"
-            + ProtoKw.CMD_CRACK_STATUS + "\\s+(\\w+)\\s+(\\w+)\\s+(.*)");
+public class DirectiveHelper {
+    private static final Logger log = Logger.getLogger(DirectiveHelper.class);
     private static final Pattern PAT_RESOURCE = Pattern
             .compile("(\\w+)\\s+(\\d+)\\s*");
 

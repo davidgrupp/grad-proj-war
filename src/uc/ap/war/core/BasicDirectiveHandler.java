@@ -1,11 +1,14 @@
-package uc.ap.war.protocol;
+package uc.ap.war.core;
 
 import java.util.HashMap;
 
 import org.apache.log4j.Logger;
 
-import uc.ap.war.protocol.exp.PlayerIdException;
-import uc.ap.war.protocol.exp.SecurityServiceException;
+import uc.ap.war.core.exp.PlayerIdException;
+import uc.ap.war.core.exp.SecurityServiceException;
+import uc.ap.war.core.model.WarPlayer;
+import uc.ap.war.core.protocol.DirectiveHelper;
+import uc.ap.war.core.protocol.MsgGroup;
 
 public class BasicDirectiveHandler implements DirectiveHandler {
     private static Logger log = Logger.getLogger(BasicDirectiveHandler.class);
@@ -78,7 +81,7 @@ public class BasicDirectiveHandler implements DirectiveHandler {
     @Override
     public void resultPlayerStatus(final MsgGroup mg) {
         log.debug(mg.getResult());
-        final HashMap<String, Integer> res = ProtocolHelper
+        final HashMap<String, Integer> res = DirectiveHelper
                 .parsePlayerStatResources(mg);
         WarPlayer.ins().updateResources(res);
     }

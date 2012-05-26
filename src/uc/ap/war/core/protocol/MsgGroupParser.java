@@ -1,4 +1,4 @@
-package uc.ap.war.protocol;
+package uc.ap.war.core.protocol;
 
 import java.io.BufferedReader;
 import java.io.IOException;

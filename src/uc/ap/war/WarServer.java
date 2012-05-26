@@ -10,12 +10,11 @@ import java.net.Socket;
 
 import org.apache.log4j.Logger;
 
-import uc.ap.war.protocol.BasicDirectiveHandler;
-import uc.ap.war.protocol.DirectiveHandler;
-import uc.ap.war.protocol.WarMonitorProxy;
-import uc.ap.war.protocol.WarMonitorProxyLogger;
-import uc.ap.war.protocol.exp.PlayerIdException;
-import uc.ap.war.protocol.exp.SecurityServiceException;
+import uc.ap.war.core.DirectiveHandler;
+import uc.ap.war.core.WarMonitorProxy;
+import uc.ap.war.core.WarMonitorProxyLogger;
+import uc.ap.war.core.exp.PlayerIdException;
+import uc.ap.war.core.exp.SecurityServiceException;
 
 public class WarServer implements Runnable {
     static Logger log = Logger.getLogger(WarServer.class);
@@ -43,13 +42,11 @@ public class WarServer implements Runnable {
         }
     }
 
-    public void stopSvr() {
-        this.threadStoped = true;
-    }
-
     @Override
     public void run() {
-        log.info("war server(passive client) started");
+        final String msg = "war server(passive client) started";
+        pLog.log(msg);
+        log.info(msg);
         while (!this.threadStoped) {
             try {
                 final Socket inSock = this.svrSock.accept();
@@ -73,5 +70,9 @@ public class WarServer implements Runnable {
                 log.error(e);
             }
         }
+    }
+
+    public void stopSvr() {
+        this.threadStoped = true;
     }
 }
