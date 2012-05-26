@@ -41,14 +41,14 @@ public class MsgGroup {
                 log.debug("End of transaction, parsing aborted.");
                 return false;
             }
-            setResultArg(arg);
+            this.resultArg = arg;
             if (tokens.length == 3) {
-                setResultStr(tokens[2]);
+                this.resultStr = tokens[2];
             }
         } else if (msg.startsWith(ProtoKw.DIR_CMD_ERR)) {
-            setCmdError(msg.split("\\s+", 2)[1]);
+            this.cmdError = msg.split("\\s+", 2)[1];
         } else if (msg.startsWith(ProtoKw.DIR_REQ)) {
-            setRequiredCmd(msg.split("\\s+")[1]);
+            this.requiredCmd = msg.split("\\s+")[1];
         }
         this.msgs.append(msg).append("\n");
         return true;
@@ -59,7 +59,6 @@ public class MsgGroup {
     }
 
     public String getResult() {
-        // TODO: move result string parsing logic here
         return resultArg + " " + resultStr;
     }
 
@@ -67,32 +66,16 @@ public class MsgGroup {
         return resultArg;
     }
 
-    void setResultArg(String arg) {
-        this.resultArg = arg;
-    }
-
     public String getResultStr() {
         return resultStr;
-    }
-
-    void setResultStr(String str) {
-        this.resultStr = str;
     }
 
     public String getCmdError() {
         return cmdError;
     }
 
-    void setCmdError(String cmdError) {
-        this.cmdError = cmdError;
-    }
-
     public String getRequiredCmd() {
         return requiredCmd;
-    }
-
-    void setRequiredCmd(String requiredCmd) {
-        this.requiredCmd = requiredCmd;
     }
 
 }
