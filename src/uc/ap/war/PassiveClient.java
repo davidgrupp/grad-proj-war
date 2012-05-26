@@ -24,12 +24,12 @@ public class PassiveClient implements Runnable {
     private WarMonitorProxyLogger pLog;
     private DirectiveHandler hdlr;
 
-    public PassiveClient(final int port, final DirectiveHandler hdlr) {
+    public PassiveClient(final int port, final DirectiveHandler hdlr) throws IOException {
         this(port, hdlr, null);
     }
 
     public PassiveClient(final int port, final DirectiveHandler hdlr,
-            final WarMonitorProxyLogger proxyLogger) {
+            final WarMonitorProxyLogger proxyLogger) throws IOException {
         this.port = port;
         this.hdlr = hdlr;
         this.pLog = proxyLogger;
@@ -38,7 +38,7 @@ public class PassiveClient implements Runnable {
             svrSock = new ServerSocket(this.port);
         } catch (IOException e) {
             log.error(e);
-            System.exit(1);
+            throw e;
         }
     }
 

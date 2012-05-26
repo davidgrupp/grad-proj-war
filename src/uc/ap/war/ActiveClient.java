@@ -194,10 +194,14 @@ public class ActiveClient extends JFrame {
                         taSvrLog.append(msg);
                     }
                 };
-                svr = new PassiveClient(WarPlayer.ins().getPort(),
-                        new PassiveDirectiveHandler(), pLog);
-                svrThread = new Thread(svr);
-                svrThread.start();
+                try {
+                    svr = new PassiveClient(WarPlayer.ins().getPort(),
+                            new PassiveDirectiveHandler(), pLog);
+                    svrThread = new Thread(svr);
+                    svrThread.start();
+                } catch (IOException e1) {
+                    taSvrLog.append(e1.toString() + "\n");
+                }
             }
         });
         pane.add(btnSvrUp);
