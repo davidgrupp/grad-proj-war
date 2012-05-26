@@ -160,7 +160,7 @@ public class ActiveClient extends JFrame {
     }
 
     private JPanel buildConfigPane() {
-        final JPanel pane = initControlPane("Config", 180);
+        final JPanel pane = initControlPane("Config", 200);
 
         final JTextField tfPersistantPlayerId = new JTextField();
         btnLoadPlayer = new JButton("Load Player (Id): ");
@@ -337,6 +337,71 @@ public class ActiveClient extends JFrame {
         return pane;
     }
 
+    private JPanel buildCrackPane() {
+        final JPanel pane = initControlPane("Crack", 100);
+
+        pane.add(new JLabel("Target Id"));
+        cbCrackTargetIds = new JComboBox<String>();
+        cbCrackTargetIds.setModel(new DefaultComboBoxModel<String>(WarInfo
+                .ins().getOtherPlayerIds()));
+        pane.add(cbCrackTargetIds);
+
+        final JTextField tfCrackStatusComputers = new JFormattedTextField(
+                new RegexFormatter("\\d+"));
+        tfCrackStatusComputers.setToolTipText("number of computers");
+        final JButton btnCrackStatus = new JButton("Crack Status using:");
+        btnCrackStatus.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                final String pid = (String) cbCrackTargetIds.getSelectedItem();
+                final int compAmt = Integer.parseInt(tfCrackStatusComputers
+                        .getText());
+                mon.cmdCrackStatus(pid, compAmt);
+            }
+        });
+        pane.add(btnCrackStatus);
+        pane.add(tfCrackStatusComputers);
+
+        final JTextField tfCrackCookieComputers = new JFormattedTextField(
+                new RegexFormatter("\\d+"));
+        tfCrackCookieComputers.setToolTipText("number of computers");
+        final JButton btnCrackCookie = new JButton("Crack Cookie using: ");
+        btnCrackCookie.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                final String pid = (String) cbCrackTargetIds.getSelectedItem();
+                final int compAmt = Integer.parseInt(tfCrackCookieComputers
+                        .getText());
+                mon.cmdCrackCookie(pid, compAmt);
+            }
+        });
+        pane.add(btnCrackCookie);
+        pane.add(tfCrackCookieComputers);
+
+        btnOtherHp = new JButton("Crack Host Port");
+        btnOtherHp.setToolTipText("using 1 computer");
+        btnOtherHp.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                mon.cmdCrackHostPort((String) cbCrackTargetIds
+                        .getSelectedItem());
+            }
+        });
+        pane.add(btnOtherHp);
+
+        btnRandomPlayerHp = new JButton("Random Host Port");
+        btnRandomPlayerHp.setToolTipText("available every xxx minutes");
+        btnRandomPlayerHp.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                mon.cmdRandomPlayerHp();
+            }
+        });
+        pane.add(btnRandomPlayerHp);
+
+        return pane;
+    }
+
     private JPanel buildLogPane() {
         final JPanel pane = new JPanel();
         pane.setLayout(new GridLayout(2, 0));
@@ -419,67 +484,6 @@ public class ActiveClient extends JFrame {
         tfOtherRubber = new JTextField();
         tfOtherRubber.setEnabled(false);
         pane.add(tfOtherRubber);
-
-        return pane;
-    }
-
-    private JPanel buildCrackPane() {
-        final JPanel pane = initControlPane("Crack", 100);
-
-        pane.add(new JLabel("Target Id"));
-        cbCrackTargetIds = new JComboBox<String>();
-        cbCrackTargetIds.setModel(new DefaultComboBoxModel<String>(WarInfo
-                .ins().getOtherPlayerIds()));
-        pane.add(cbCrackTargetIds);
-
-        final JTextField tfCrackStatusComputers = new JFormattedTextField(
-                new RegexFormatter("\\d+"));
-        pane.add(tfCrackStatusComputers);
-        final JButton btnCrackStatus = new JButton("Crack Status");
-        btnCrackStatus.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                final String pid = (String) cbCrackTargetIds.getSelectedItem();
-                final int compAmt = Integer.parseInt(tfCrackStatusComputers
-                        .getText());
-                mon.cmdCrackStatus(pid, compAmt);
-            }
-        });
-        pane.add(btnCrackStatus);
-
-        final JTextField tfCrackCookieComputers = new JFormattedTextField(
-                new RegexFormatter("\\d+"));
-        pane.add(tfCrackCookieComputers);
-        final JButton btnCrackCookie = new JButton("Crack Cookie");
-        btnCrackCookie.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                final String pid = (String) cbCrackTargetIds.getSelectedItem();
-                final int compAmt = Integer.parseInt(tfCrackCookieComputers
-                        .getText());
-                mon.cmdCrackCookie(pid, compAmt);
-            }
-        });
-        pane.add(btnCrackCookie);
-
-        btnOtherHp = new JButton("Crack Host Port");
-        btnOtherHp.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                mon.cmdCrackHostPort((String) cbCrackTargetIds
-                        .getSelectedItem());
-            }
-        });
-        pane.add(btnOtherHp);
-
-        btnRandomPlayerHp = new JButton("Random Host Port");
-        btnRandomPlayerHp.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                mon.cmdRandomPlayerHp();
-            }
-        });
-        pane.add(btnRandomPlayerHp);
 
         return pane;
     }
@@ -693,7 +697,7 @@ public class ActiveClient extends JFrame {
                 ProtoKw.COMP_RES_NAMES));
         pane.add(cbCompRes);
 
-        btnTradeReq = new JButton("Trade Request: ");
+        btnTradeReq = new JButton("Request Trade with: ");
         btnTradeReq.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -715,17 +719,25 @@ public class ActiveClient extends JFrame {
         cbTradeTargetId = new JComboBox<String>();
         pane.add(cbTradeTargetId);
 
+        final JPanel myResPane = new JPanel();
+        myResPane.setLayout(new GridLayout(1, 2));
+        myResPane.add(new JLabel("Trade"));
+        tfTradeMyResAmt = new JTextField();
+        myResPane.add(tfTradeMyResAmt);
+        pane.add(myResPane);
         cbTradeMyRes = new JComboBox<String>(new DefaultComboBoxModel<String>(
                 ProtoKw.RES_NAMES));
         pane.add(cbTradeMyRes);
-        tfTradeMyResAmt = new JTextField();
-        pane.add(tfTradeMyResAmt);
 
+        final JPanel forResPane = new JPanel();
+        forResPane.setLayout(new GridLayout(1, 2));
+        forResPane.add(new JLabel("For"));
+        tfTradeForResAmt = new JTextField();
+        forResPane.add(tfTradeForResAmt);
+        pane.add(forResPane);
         cbTradeForRes = new JComboBox<String>(new DefaultComboBoxModel<String>(
                 ProtoKw.RES_NAMES));
         pane.add(cbTradeForRes);
-        tfTradeForResAmt = new JTextField();
-        pane.add(tfTradeForResAmt);
 
         return pane;
     }
@@ -733,10 +745,7 @@ public class ActiveClient extends JFrame {
     private JPanel buildWarPane() {
         final JPanel pane = initControlPane("War", 80);
 
-        cbWarTargetId = new JComboBox<String>();
-        pane.add(cbWarTargetId);
-
-        btnWarStatus = new JButton("War Status");
+        btnWarStatus = new JButton("War Status with:");
         btnWarStatus.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -744,6 +753,8 @@ public class ActiveClient extends JFrame {
             }
         });
         pane.add(btnWarStatus);
+        cbWarTargetId = new JComboBox<String>();
+        pane.add(cbWarTargetId);
 
         btnDeclareWar = new JButton("Declare War...");
         btnDeclareWar.addActionListener(new ActionListener() {
@@ -810,7 +821,7 @@ public class ActiveClient extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 final JDialog dialog = new JDialog(frameForDialog,
-                        "Declare War", false);
+                        "Offer War Truce", false);
                 dialog.setLayout(new BorderLayout());
 
                 final JPanel pane = new JPanel();
