@@ -37,15 +37,14 @@ import javax.swing.text.DefaultCaret;
 import javax.swing.text.NumberFormatter;
 
 import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
 
 import uc.ap.war.core.BasicDirectiveHandler;
 import uc.ap.war.core.WarMonitorProxy;
 import uc.ap.war.core.WarMonitorProxyLogger;
 import uc.ap.war.core.crypto.CertMgrAdapter;
-import uc.ap.war.core.exp.PlayerIdException;
-import uc.ap.war.core.exp.SecurityServiceException;
-import uc.ap.war.core.exp.SecurityServiceNotReadyException;
+import uc.ap.war.core.ex.PlayerIdException;
+import uc.ap.war.core.ex.SecurityServiceException;
+import uc.ap.war.core.ex.SecurityServiceNotReadyException;
 import uc.ap.war.core.model.WarInfo;
 import uc.ap.war.core.model.WarModelManager;
 import uc.ap.war.core.model.WarPlayer;
@@ -54,24 +53,14 @@ import uc.ap.war.core.protocol.MsgGroup;
 import uc.ap.war.core.protocol.ProtoKw;
 
 @SuppressWarnings("serial")
-public class WarClientGUI extends JFrame {
+public class ActiveClient extends JFrame {
     private static final int FRAME_WIDTH = 1200;
     private static final int CTL_PANE_WIDTH = 380;
-    private static Logger log = Logger.getLogger(WarClientGUI.class);
-
-    public static void main(String[] args) {
-        PropertyConfigurator.configure("log4j.properties");
-
-        final WarClientGUI f = new WarClientGUI();
-        f.pack();
-        f.setVisible(true);
-
-        log.debug("WarClient started.");
-    }
+    private static final Logger log = Logger.getLogger(ActiveClient.class);
 
     private Socket monitorSock;
     private WarMonitorProxy mon;
-    private WarServer svr;
+    private PassiveClient svr;
     private Thread svrThread;
     private JTextArea taClientLog;
     private JTextArea taSvrLog;
@@ -138,7 +127,7 @@ public class WarClientGUI extends JFrame {
     private JButton btnMakeCert;
     private JComboBox<Integer> cbRegPort;
 
-    public WarClientGUI() {
+    public ActiveClient() {
         super.setPreferredSize(new Dimension(FRAME_WIDTH, 700));
         super.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         // a 3-column layout
@@ -163,7 +152,7 @@ public class WarClientGUI extends JFrame {
         rightPane.add(buildWarPane());
         rightPane.add(buildOthersPane());
 
-        log.debug("CheckerGameFrame inited...");
+        log.debug("WarActiveClient inited...");
     }
 
     private JPanel buildConfigPane() {
@@ -201,8 +190,8 @@ public class WarClientGUI extends JFrame {
                         taSvrLog.append(msg);
                     }
                 };
-                svr = new WarServer(WarPlayer.ins().getPort(),
-                        new ServerDirectiveHandler(), pLog);
+                svr = new PassiveClient(WarPlayer.ins().getPort(),
+                        new PassiveDirectiveHandler(), pLog);
                 svrThread = new Thread(svr);
                 svrThread.start();
             }
@@ -249,7 +238,7 @@ public class WarClientGUI extends JFrame {
         btnConn.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent arg0) {
-                final ClientDirectiveHandler cmdr = new ClientDirectiveHandler();
+                final ActiveDirectiveHandler cmdr = new ActiveDirectiveHandler();
                 final String h = (String) cbMonHost.getSelectedItem();
                 final int monP = (Integer) cbMonPort.getSelectedItem();
                 final int regP = (Integer) cbRegPort.getSelectedItem();
@@ -939,7 +928,7 @@ public class WarClientGUI extends JFrame {
         tfMyRubber.setText(String.valueOf(me.getRubber()));
     }
 
-    class ClientDirectiveHandler extends BasicDirectiveHandler {
+    class ActiveDirectiveHandler extends BasicDirectiveHandler {
 
         @Override
         public void requireAlive(final WarMonitorProxy mon) {
@@ -1028,7 +1017,7 @@ public class WarClientGUI extends JFrame {
 
     }
 
-    class ServerDirectiveHandler extends BasicDirectiveHandler {
+    class PassiveDirectiveHandler extends BasicDirectiveHandler {
 
         @Override
         public void requireTradeResp(final WarMonitorProxy mon,

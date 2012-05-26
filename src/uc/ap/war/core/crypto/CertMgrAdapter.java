@@ -7,8 +7,8 @@ import java.math.BigInteger;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
-import uc.ap.war.core.exp.SecurityServiceException;
-import uc.ap.war.core.exp.SecurityServiceNotReadyException;
+import uc.ap.war.core.ex.SecurityServiceException;
+import uc.ap.war.core.ex.SecurityServiceNotReadyException;
 
 public class CertMgrAdapter {
     private static final Logger log = Logger.getLogger(CertMgrAdapter.class);

@@ -13,22 +13,22 @@ import org.apache.log4j.Logger;
 import uc.ap.war.core.DirectiveHandler;
 import uc.ap.war.core.WarMonitorProxy;
 import uc.ap.war.core.WarMonitorProxyLogger;
-import uc.ap.war.core.exp.PlayerIdException;
-import uc.ap.war.core.exp.SecurityServiceException;
+import uc.ap.war.core.ex.PlayerIdException;
+import uc.ap.war.core.ex.SecurityServiceException;
 
-public class WarServer implements Runnable {
-    static Logger log = Logger.getLogger(WarServer.class);
+public class PassiveClient implements Runnable {
+    private static final Logger log = Logger.getLogger(PassiveClient.class);
     private volatile boolean threadStoped;
     private ServerSocket svrSock;
     private int port;
     private WarMonitorProxyLogger pLog;
     private DirectiveHandler hdlr;
 
-    public WarServer(final int port, final DirectiveHandler hdlr) {
+    public PassiveClient(final int port, final DirectiveHandler hdlr) {
         this(port, hdlr, null);
     }
 
-    public WarServer(final int port, final DirectiveHandler hdlr,
+    public PassiveClient(final int port, final DirectiveHandler hdlr,
             final WarMonitorProxyLogger proxyLogger) {
         this.port = port;
         this.hdlr = hdlr;

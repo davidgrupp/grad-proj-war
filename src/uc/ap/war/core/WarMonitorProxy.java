@@ -16,15 +16,15 @@ import org.apache.log4j.Logger;
 import uc.ap.war.core.crypto.CertMgrAdapter;
 import uc.ap.war.core.crypto.KarnBufferedReader;
 import uc.ap.war.core.crypto.KarnPrintWriter;
-import uc.ap.war.core.exp.PlayerIdException;
-import uc.ap.war.core.exp.SecurityServiceException;
+import uc.ap.war.core.ex.PlayerIdException;
+import uc.ap.war.core.ex.SecurityServiceException;
 import uc.ap.war.core.model.WarPlayer;
 import uc.ap.war.core.protocol.CmdHelper;
 import uc.ap.war.core.protocol.MsgGroup;
 import uc.ap.war.core.protocol.ProtoKw;
 
 public class WarMonitorProxy {
-    static Logger log = Logger.getLogger(WarMonitorProxy.class);
+    private static final Logger log = Logger.getLogger(WarMonitorProxy.class);
     private WarMonitorProxyLogger pLog;
     private BufferedReader in;
     private PrintWriter out;
