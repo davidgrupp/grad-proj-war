@@ -16,7 +16,7 @@ import org.apache.log4j.Logger;
 import uc.ap.war.core.crypto.CertMgrAdapter;
 import uc.ap.war.core.crypto.KarnBufferedReader;
 import uc.ap.war.core.crypto.KarnPrintWriter;
-import uc.ap.war.core.ex.PlayerIdException;
+import uc.ap.war.core.ex.NoPlayerIdException;
 import uc.ap.war.core.ex.SecurityServiceException;
 import uc.ap.war.core.model.WarPlayer;
 import uc.ap.war.core.protocol.CmdHelper;
@@ -97,7 +97,7 @@ public class WarMonitorProxy {
                 .getPort()));
     }
 
-    public void cmdIdent() throws PlayerIdException, SecurityServiceException {
+    public void cmdIdent() throws NoPlayerIdException, SecurityServiceException {
         if (cAdp.karnReady()) {
             cmdIdentWithCrypto();
         } else {
@@ -105,7 +105,7 @@ public class WarMonitorProxy {
         }
     }
 
-    public void cmdIdentWithCrypto() throws PlayerIdException,
+    public void cmdIdentWithCrypto() throws NoPlayerIdException,
             SecurityServiceException {
         issueCmd(CmdHelper.ident(WarPlayer.ins().getId(), cAdp.getMyHalfStr()));
     }
@@ -149,7 +149,7 @@ public class WarMonitorProxy {
     }
 
     public void cmdTradeReq(String myRes, String myResAmt, String targetId,
-            String forRes, String forResAmt) throws PlayerIdException {
+            String forRes, String forResAmt) throws NoPlayerIdException {
         issueCmd(CmdHelper.tradeReq(WarPlayer.ins().getId(), myRes, myResAmt,
                 targetId, forRes, forResAmt));
     }
@@ -160,13 +160,13 @@ public class WarMonitorProxy {
 
     public void cmdWarTruce(String id, int rupy, int comp, int weap, int vehi,
             int steel, int copper, int oil, int glass, int plastic, int rubber)
-            throws PlayerIdException {
+            throws NoPlayerIdException {
         issueCmd(CmdHelper.warTruce(WarPlayer.ins().getId(), id, rupy, comp,
                 weap, vehi, steel, copper, oil, glass, plastic, rubber));
     }
 
     public void dispatchMonitorDirectives() throws IOException,
-            PlayerIdException, SecurityServiceException {
+            NoPlayerIdException, SecurityServiceException {
         for (MsgGroup mg = nextMsgGroup(); mg != null; mg = nextMsgGroup()) {
             // lastMsgGroup = mg;
             pLog.log("[" + new Date() + "]\n");

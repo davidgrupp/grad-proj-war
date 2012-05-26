@@ -42,7 +42,8 @@ import uc.ap.war.core.BasicDirectiveHandler;
 import uc.ap.war.core.WarMonitorProxy;
 import uc.ap.war.core.WarMonitorProxyLogger;
 import uc.ap.war.core.crypto.CertMgrAdapter;
-import uc.ap.war.core.ex.PlayerIdException;
+import uc.ap.war.core.ex.NoPlayerIdException;
+import uc.ap.war.core.ex.PlayerDataNotFoundException;
 import uc.ap.war.core.ex.SecurityServiceException;
 import uc.ap.war.core.ex.SecurityServiceNotReadyException;
 import uc.ap.war.core.model.WarInfo;
@@ -174,8 +175,7 @@ public class ActiveClient extends JFrame {
                     tfMyHost.setText(me.getHost());
                     tfMyPort.setText(String.valueOf(me.getPort()));
                     refreshMyResourceInfo();
-                } catch (ClassNotFoundException | IOException
-                        | PlayerIdException ex) {
+                } catch (PlayerDataNotFoundException | NoPlayerIdException ex) {
                     log.error(ex);
                     taClientLog.append(ex.toString());
                 }
@@ -272,7 +272,7 @@ public class ActiveClient extends JFrame {
                         public void run() {
                             try {
                                 mon.dispatchMonitorDirectives();
-                            } catch (PlayerIdException | IOException
+                            } catch (NoPlayerIdException | IOException
                                     | SecurityServiceException e) {
                                 log.error(e);
                             }
@@ -318,7 +318,7 @@ public class ActiveClient extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 try {
                     mon.cmdIdentWithCrypto();
-                } catch (PlayerIdException | SecurityServiceException e1) {
+                } catch (NoPlayerIdException | SecurityServiceException e1) {
                     log.error(e1);
                 }
             }
@@ -617,7 +617,7 @@ public class ActiveClient extends JFrame {
                 btnId.setForeground(new Color(0, 0, 0));
                 try {
                     mon.cmdIdent();
-                } catch (PlayerIdException ex) {
+                } catch (NoPlayerIdException ex) {
                     log.error(ex);
                 } catch (SecurityServiceException ex2) {
                     log.error(ex2);
@@ -710,7 +710,7 @@ public class ActiveClient extends JFrame {
                 try {
                     mon.cmdTradeReq(myRes, myResAmt, targetId, forRes,
                             forResAmt);
-                } catch (PlayerIdException ex) {
+                } catch (NoPlayerIdException ex) {
                     log.error(ex);
                 }
             }
@@ -901,7 +901,7 @@ public class ActiveClient extends JFrame {
                         try {
                             mon.cmdWarTruce(id, rupy, comp, weap, vehi, steel,
                                     copper, oil, glass, plastic, rubber);
-                        } catch (PlayerIdException ex) {
+                        } catch (NoPlayerIdException ex) {
                             log.error(ex);
                         }
                         dialog.setVisible(false);
@@ -962,7 +962,7 @@ public class ActiveClient extends JFrame {
 
         @Override
         public void requireIdent(final WarMonitorProxy mon)
-                throws PlayerIdException {
+                throws NoPlayerIdException {
             btnId.setForeground(new Color(255, 0, 0));
         }
 

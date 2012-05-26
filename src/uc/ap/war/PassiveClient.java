@@ -13,7 +13,7 @@ import org.apache.log4j.Logger;
 import uc.ap.war.core.DirectiveHandler;
 import uc.ap.war.core.WarMonitorProxy;
 import uc.ap.war.core.WarMonitorProxyLogger;
-import uc.ap.war.core.ex.PlayerIdException;
+import uc.ap.war.core.ex.NoPlayerIdException;
 import uc.ap.war.core.ex.SecurityServiceException;
 
 public class PassiveClient implements Runnable {
@@ -60,7 +60,7 @@ public class PassiveClient implements Runnable {
                                     .getOutputStream());
                             new WarMonitorProxy(r, w, hdlr, pLog)
                                     .dispatchMonitorDirectives();
-                        } catch (IOException | PlayerIdException
+                        } catch (IOException | NoPlayerIdException
                                 | SecurityServiceException e) {
                             log.error(e);
                         }

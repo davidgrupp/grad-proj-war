@@ -4,7 +4,7 @@ import java.util.HashMap;
 
 import org.apache.log4j.Logger;
 
-import uc.ap.war.core.ex.PlayerIdException;
+import uc.ap.war.core.ex.NoPlayerIdException;
 import uc.ap.war.core.protocol.ProtoKw;
 
 public final class WarPlayer implements java.io.Serializable {
@@ -57,9 +57,9 @@ public final class WarPlayer implements java.io.Serializable {
         return host;
     }
 
-    public String getId() throws PlayerIdException {
+    public String getId() throws NoPlayerIdException {
         if (id.equals("")) {
-            throw new PlayerIdException();
+            throw new NoPlayerIdException();
         }
         return id;
     }

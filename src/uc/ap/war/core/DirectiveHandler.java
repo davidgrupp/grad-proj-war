@@ -1,6 +1,6 @@
 package uc.ap.war.core;
 
-import uc.ap.war.core.ex.PlayerIdException;
+import uc.ap.war.core.ex.NoPlayerIdException;
 import uc.ap.war.core.ex.SecurityServiceException;
 import uc.ap.war.core.protocol.MsgGroup;
 
@@ -12,7 +12,7 @@ public interface DirectiveHandler {
     public void requireHostPort(final WarMonitorProxy mon);
 
     public void requireIdent(final WarMonitorProxy mon)
-            throws PlayerIdException, SecurityServiceException;
+            throws NoPlayerIdException, SecurityServiceException;
 
     public void requirePwd(final WarMonitorProxy mon);
 
