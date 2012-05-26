@@ -8,7 +8,6 @@ import uc.ap.war.core.ex.NoPlayerIdException;
 import uc.ap.war.core.ex.SecurityServiceException;
 import uc.ap.war.core.model.WarPlayer;
 import uc.ap.war.core.protocol.DirectiveHelper;
-import uc.ap.war.core.protocol.MsgGroup;
 
 public class BasicDirectiveHandler implements DirectiveHandler {
     private static Logger log = Logger.getLogger(BasicDirectiveHandler.class);
@@ -82,7 +81,7 @@ public class BasicDirectiveHandler implements DirectiveHandler {
     public void resultPlayerStatus(final MsgGroup mg) {
         log.debug(mg.getResult());
         final HashMap<String, Integer> res = DirectiveHelper
-                .parsePlayerStatResources(mg);
+                .parsePlayerStatResources(mg.getResultStr());
         WarPlayer.ins().updateResources(res);
     }
 

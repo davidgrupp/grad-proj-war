@@ -39,6 +39,7 @@ import javax.swing.text.NumberFormatter;
 import org.apache.log4j.Logger;
 
 import uc.ap.war.core.BasicDirectiveHandler;
+import uc.ap.war.core.MsgGroup;
 import uc.ap.war.core.WarMonitorProxy;
 import uc.ap.war.core.WarMonitorProxyLogger;
 import uc.ap.war.core.crypto.CertMgrAdapter;
@@ -50,7 +51,6 @@ import uc.ap.war.core.model.WarInfo;
 import uc.ap.war.core.model.WarModelManager;
 import uc.ap.war.core.model.WarPlayer;
 import uc.ap.war.core.protocol.DirectiveHelper;
-import uc.ap.war.core.protocol.MsgGroup;
 import uc.ap.war.core.protocol.ProtoKw;
 
 @SuppressWarnings("serial")
@@ -973,7 +973,8 @@ public class ActiveClient extends JFrame {
 
         @Override
         public void resultCrackCookie(final MsgGroup mg) {
-            final String playerCookie = DirectiveHelper.parseCrackCookie(mg);
+            final String playerCookie = DirectiveHelper.parseCrackCookie(mg
+                    .getResultStr());
             if (playerCookie != null) {
                 tfOtherCookie.setText(playerCookie);
             }
@@ -981,7 +982,8 @@ public class ActiveClient extends JFrame {
 
         @Override
         public void resultCrackHostPort(final MsgGroup mg) {
-            final String[] playerHp = DirectiveHelper.parseCrackHp(mg);
+            final String[] playerHp = DirectiveHelper.parseCrackHp(mg
+                    .getResultStr());
             if (playerHp != null && playerHp.length == 3) {
                 tfOtherId.setText(playerHp[0]);
                 tfOtherHost.setText(playerHp[1]);
@@ -992,7 +994,7 @@ public class ActiveClient extends JFrame {
         @Override
         public void resultCrackStatus(final MsgGroup mg) {
             final HashMap<String, Integer> res = DirectiveHelper
-                    .parseCrackStatus(mg);
+                    .parseCrackStatus(mg.getResultStr());
             tfOtherRupy.setText(String.valueOf(res.get(ProtoKw.RES_RUPYULARS)));
             tfOtherComputer.setText(String.valueOf(res
                     .get(ProtoKw.RES_COMPUTERS)));
@@ -1010,7 +1012,8 @@ public class ActiveClient extends JFrame {
 
         @Override
         public void resultGameIds(final MsgGroup mg) {
-            final String[] gameIds = DirectiveHelper.parseGameIds(mg);
+            final String[] gameIds = DirectiveHelper.parseGameIds(mg
+                    .getResultStr());
             log.debug("Got game ids: " + gameIds);
             cbCrackTargetIds
                     .setModel(new DefaultComboBoxModel<String>(gameIds));
@@ -1027,7 +1030,8 @@ public class ActiveClient extends JFrame {
 
         @Override
         public void resultRandomHostPort(final MsgGroup mg) {
-            final String[] playerHp = DirectiveHelper.parseCrackHp(mg);
+            final String[] playerHp = DirectiveHelper.parseCrackHp(mg
+                    .getResultStr());
             if (playerHp != null && playerHp.length == 3) {
                 tfOtherId.setText(playerHp[0]);
                 tfOtherHost.setText(playerHp[1]);

@@ -2,7 +2,6 @@ package uc.ap.war.core;
 
 import uc.ap.war.core.ex.NoPlayerIdException;
 import uc.ap.war.core.ex.SecurityServiceException;
-import uc.ap.war.core.protocol.MsgGroup;
 
 public interface DirectiveHandler {
 

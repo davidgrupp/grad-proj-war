@@ -1,6 +1,8 @@
-package uc.ap.war.core.protocol;
+package uc.ap.war.core;
 
 import org.apache.log4j.Logger;
+
+import uc.ap.war.core.protocol.ProtoKw;
 
 public class MsgGroup {
     private static final Logger log = Logger.getLogger(MsgGroup.class);
@@ -9,25 +11,27 @@ public class MsgGroup {
     private String cmdError;
     private String requiredCmd;
     private StringBuilder msgs;
-    private boolean completed;
 
-    public MsgGroup() {
+    /**
+     * Prevent initiation by classes in other packages.
+     */
+    MsgGroup() {
         resultArg = "";
         resultStr = "";
         cmdError = "";
         requiredCmd = "";
-        completed = false;
         msgs = new StringBuilder();
     }
 
-    public boolean addMsg(final String msg) {
+    /**
+     * Prevent change in state by classes in other packages.
+     */
+    boolean addMsg(final String msg) {
         if (msg == null) {
-            completed = true;
             return false;
         }
         if (msg.startsWith(ProtoKw.DIR_WAIT)) {
             log.debug("WAITING directive encounted, end of message group.");
-            completed = true;
             return false;
         }
         if (msg.startsWith(ProtoKw.DIR_RESULT)) {
@@ -35,7 +39,6 @@ public class MsgGroup {
             final String arg = tokens[1];
             if (arg.equals(ProtoKw.DIR_QUIT)) {
                 log.debug("End of transaction, parsing aborted.");
-                completed = true;
                 return false;
             }
             setResultArg(arg);

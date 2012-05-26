@@ -8,36 +8,87 @@ import org.apache.log4j.Logger;
 
 public class DirectiveHelper {
     private static final Logger log = Logger.getLogger(DirectiveHelper.class);
+    private static final Pattern PAT_HOST_PORT = Pattern
+            .compile("(\\w+)\\s+(\\w+)\\s+(\\d+)\\s*");
     private static final Pattern PAT_RESOURCE = Pattern
             .compile("(\\w+)\\s+(\\d+)\\s*");
 
-    public static String[] parseGameIds(final MsgGroup mg) {
-        if (mg == null) {
-            return null;
+    public static String parseCrackCookie(final String result) {
+        if (result == null) {
+            return "";
         }
-        return mg.getResultStr().split("\\s+");
+        final int expectedCount = 3;
+        final String[] tokens = result.split("\\s+", expectedCount);
+        if (tokens.length == expectedCount
+                && tokens[1].equals(ProtoKw.CMD_ARG_SUCCEEDED)) {
+            return tokens[expectedCount - 1];
+        } else {
+            return "";
+        }
     }
 
-    public static String[] parseCrackHp(final MsgGroup mg) {
-        if (mg == null) {
+    public static String[] parseCrackHp(final String result) {
+        if (result == null) {
             return null;
         }
-        return mg.getResultStr().split("\\s+");
+        final Matcher mat = PAT_HOST_PORT.matcher(result);
+        if (mat.matches()) {
+            return new String[] { mat.group(1), mat.group(2), mat.group(3) };
+        } else {
+            return null;
+        }
     }
 
-    public static HashMap<String, Integer> parsePlayerStatResources(
-            final MsgGroup mg) {
+    public static HashMap<String, Integer> parseCrackStatus(final String result) {
         final HashMap<String, Integer> hmap = new HashMap<String, Integer>();
-        if (mg == null) {
+        if (result == null) {
             return hmap;
         }
-        populateResources(mg.getResultStr(), hmap);
+        final int expectedCount = 3;
+        final String[] tokens = result.split("\\s+", expectedCount);
+        if (tokens.length == expectedCount
+                && tokens[1].equals(ProtoKw.CMD_ARG_SUCCEEDED)) {
+            populateResources(tokens[expectedCount - 1], hmap);
+        }
         return hmap;
     }
 
-    private static void populateResources(final String resourceString,
+    public static String[] parseGameIds(final String result) {
+        if (result == null) {
+            return null;
+        }
+        return result.split("\\s+");
+    }
+
+    public static HashMap<String, Integer> parsePlayerStatResources(
+            final String result) {
+        final HashMap<String, Integer> hmap = new HashMap<String, Integer>();
+        if (result == null) {
+            return hmap;
+        }
+        populateResources(result, hmap);
+        return hmap;
+    }
+
+    public static HashMap<String, Integer> parseTruceResources(
+            final String result) {
+        final HashMap<String, Integer> hmap = new HashMap<String, Integer>();
+        if (result == null) {
+            return hmap;
+        }
+        final int expectedCount = 4;
+        final String[] tokens = result.split("\\s+", expectedCount);
+        if (tokens.length == expectedCount) {
+            populateResources(tokens[expectedCount - 1], hmap);
+        }
+        return hmap;
+    }
+
+    private static void populateResources(final String resourceStr,
             final HashMap<String, Integer> hmap) {
-        final Matcher mat = PAT_RESOURCE.matcher(resourceString);
+        // null pointer check is done by calling methods, so we don't need to
+        // check here
+        final Matcher mat = PAT_RESOURCE.matcher(resourceStr);
         while (mat.find()) {
             final String resName = mat.group(1);
             // we don't need to capture parsing exception here as it is
@@ -46,59 +97,6 @@ public class DirectiveHelper {
             log.debug("parsed resource: " + resName + " " + resCount);
             hmap.put(resName, resCount);
         }
-    }
-
-    public static HashMap<String, Integer> parseTruceResources(final MsgGroup mg) {
-        final HashMap<String, Integer> hmap = new HashMap<String, Integer>();
-        if (mg == null) {
-            return hmap;
-        }
-        if (!mg.getResultArg().equals(ProtoKw.CMD_WAR_TRUCE_OFFER)) {
-            return hmap;
-        }
-        final int expectedCount = 4;
-        final String[] tokens = mg.getResultStr().split("\\s+", expectedCount);
-        if (tokens.length == expectedCount) {
-            populateResources(tokens[expectedCount - 1], hmap);
-        }
-        return hmap;
-    }
-
-    public static String parseCrackCookie(final MsgGroup mg) {
-        // TODO: redesign the model for other players' information, and return a
-        // player object with parsed information here
-        if (mg == null) {
-            return "";
-        }
-        if (mg.getResultArg().equals(ProtoKw.CMD_CRACK_COOKIE)) {
-            final int expectedCount = 3;
-            final String[] tokens = mg.getResultStr().split("\\s+",
-                    expectedCount);
-            if (tokens.length == expectedCount
-                    && tokens[1].equals(ProtoKw.CMD_ARG_SUCCEEDED)) {
-                return tokens[expectedCount - 1];
-            }
-        }
-        return "";
-    }
-
-    public static HashMap<String, Integer> parseCrackStatus(MsgGroup mg) {
-        // TODO: redesign the model for other players' information, and return a
-        // player object with parsed information here
-        final HashMap<String, Integer> hmap = new HashMap<String, Integer>();
-        if (mg == null) {
-            return hmap;
-        }
-        if (!mg.getResultArg().equals(ProtoKw.CMD_CRACK_STATUS)) {
-            return hmap;
-        }
-        final int expectedCount = 3;
-        final String[] tokens = mg.getResultStr().split("\\s+", expectedCount);
-        if (tokens.length == expectedCount
-                && tokens[1].equals(ProtoKw.CMD_ARG_SUCCEEDED)) {
-            populateResources(tokens[expectedCount - 1], hmap);
-        }
-        return hmap;
     }
 
 }
