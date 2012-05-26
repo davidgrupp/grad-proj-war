@@ -134,29 +134,33 @@ public class ActiveClient extends JFrame {
         super.setLayout(new GridLayout(0, 3));
 
         // left pane
-        super.add(buildLogPane());
+        final JPanel leftPane = new JPanel();
+        leftPane.setLayout(new BorderLayout());
+        leftPane.add(buildConfigPane(), BorderLayout.NORTH);
+        leftPane.add(buildLogPane(), BorderLayout.CENTER);
+        super.add(leftPane);
 
         // middle pane
         final JPanel midPane = new JPanel();
         midPane.setLayout(new FlowLayout());
         super.add(midPane);
-        midPane.add(buildConfigPane());
         midPane.add(buildRegPane());
-        midPane.add(buildResoursePane());
         midPane.add(buildPlayerPane());
+        midPane.add(buildResoursePane());
 
         // right pane
         final JPanel rightPane = new JPanel();
         rightPane.setLayout(new FlowLayout());
         super.add(rightPane);
-        rightPane.add(buildWarPane());
+        rightPane.add(buildCrackPane());
         rightPane.add(buildOthersPane());
+        rightPane.add(buildWarPane());
 
         log.debug("WarActiveClient inited...");
     }
 
     private JPanel buildConfigPane() {
-        final JPanel pane = initControlPane("Config", 120);
+        final JPanel pane = initControlPane("Config", 180);
 
         final JTextField tfPersistantPlayerId = new JTextField();
         btnLoadPlayer = new JButton("Load Player (Id): ");
@@ -308,6 +312,19 @@ public class ActiveClient extends JFrame {
         });
         pane.add(btnMakeCert);
 
+        final JButton btnIdentEnc = new JButton("Ident Enc");
+        btnIdentEnc.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    mon.cmdIdentWithCrypto();
+                } catch (PlayerIdException | SecurityServiceException e1) {
+                    log.error(e1);
+                }
+            }
+        });
+        pane.add(btnIdentEnc);
+
         btnGameIdents = new JButton("Get Game Idents");
         btnGameIdents.addActionListener(new ActionListener() {
             @Override
@@ -346,63 +363,7 @@ public class ActiveClient extends JFrame {
     }
 
     private JPanel buildOthersPane() {
-        final JPanel pane = initControlPane("Other Players", 400);
-
-        pane.add(new JLabel("Target Id"));
-
-        cbCrackTargetIds = new JComboBox<String>();
-        cbCrackTargetIds.setModel(new DefaultComboBoxModel<String>(WarInfo
-                .ins().getOtherPlayerIds()));
-        pane.add(cbCrackTargetIds);
-
-        final JTextField tfCrackStatusComputers = new JFormattedTextField(
-                new RegexFormatter("\\d+"));
-        pane.add(tfCrackStatusComputers);
-        final JButton btnCrackStatus = new JButton("Crack Status");
-        btnCrackStatus.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                final String pid = (String) cbCrackTargetIds.getSelectedItem();
-                final int compAmt = Integer.parseInt(tfCrackStatusComputers
-                        .getText());
-                mon.cmdCrackStatus(pid, compAmt);
-            }
-        });
-        pane.add(btnCrackStatus);
-
-        final JTextField tfCrackCookieComputers = new JFormattedTextField(
-                new RegexFormatter("\\d+"));
-        pane.add(tfCrackCookieComputers);
-        final JButton btnCrackCookie = new JButton("Crack Cookie");
-        btnCrackCookie.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                final String pid = (String) cbCrackTargetIds.getSelectedItem();
-                final int compAmt = Integer.parseInt(tfCrackCookieComputers
-                        .getText());
-                mon.cmdCrackCookie(pid, compAmt);
-            }
-        });
-        pane.add(btnCrackCookie);
-
-        btnOtherHp = new JButton("Crack Host Port");
-        btnOtherHp.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                mon.cmdCrackHostPort((String) cbCrackTargetIds
-                        .getSelectedItem());
-            }
-        });
-        pane.add(btnOtherHp);
-
-        btnRandomPlayerHp = new JButton("Random Host Port");
-        btnRandomPlayerHp.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                mon.cmdRandomPlayerHp();
-            }
-        });
-        pane.add(btnRandomPlayerHp);
+        final JPanel pane = initControlPane("Other Player", 400);
 
         pane.add(new JLabel("Id"));
         tfOtherId = new JTextField();
@@ -459,25 +420,73 @@ public class ActiveClient extends JFrame {
         tfOtherRubber.setEnabled(false);
         pane.add(tfOtherRubber);
 
-        final JButton btnIdentEnc = new JButton("Ident Enc");
-        btnIdentEnc.addActionListener(new ActionListener() {
+        return pane;
+    }
+
+    private JPanel buildCrackPane() {
+        final JPanel pane = initControlPane("Crack", 100);
+
+        pane.add(new JLabel("Target Id"));
+        cbCrackTargetIds = new JComboBox<String>();
+        cbCrackTargetIds.setModel(new DefaultComboBoxModel<String>(WarInfo
+                .ins().getOtherPlayerIds()));
+        pane.add(cbCrackTargetIds);
+
+        final JTextField tfCrackStatusComputers = new JFormattedTextField(
+                new RegexFormatter("\\d+"));
+        pane.add(tfCrackStatusComputers);
+        final JButton btnCrackStatus = new JButton("Crack Status");
+        btnCrackStatus.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                try {
-                    mon.cmdIdentWithCrypto();
-                } catch (PlayerIdException | SecurityServiceException e1) {
-                    log.error(e1);
-                }
+                final String pid = (String) cbCrackTargetIds.getSelectedItem();
+                final int compAmt = Integer.parseInt(tfCrackStatusComputers
+                        .getText());
+                mon.cmdCrackStatus(pid, compAmt);
             }
         });
-        pane.add(btnIdentEnc);
+        pane.add(btnCrackStatus);
+
+        final JTextField tfCrackCookieComputers = new JFormattedTextField(
+                new RegexFormatter("\\d+"));
+        pane.add(tfCrackCookieComputers);
+        final JButton btnCrackCookie = new JButton("Crack Cookie");
+        btnCrackCookie.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                final String pid = (String) cbCrackTargetIds.getSelectedItem();
+                final int compAmt = Integer.parseInt(tfCrackCookieComputers
+                        .getText());
+                mon.cmdCrackCookie(pid, compAmt);
+            }
+        });
+        pane.add(btnCrackCookie);
+
+        btnOtherHp = new JButton("Crack Host Port");
+        btnOtherHp.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                mon.cmdCrackHostPort((String) cbCrackTargetIds
+                        .getSelectedItem());
+            }
+        });
+        pane.add(btnOtherHp);
+
+        btnRandomPlayerHp = new JButton("Random Host Port");
+        btnRandomPlayerHp.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                mon.cmdRandomPlayerHp();
+            }
+        });
+        pane.add(btnRandomPlayerHp);
 
         return pane;
     }
 
     private JPanel buildPlayerPane() {
         final JPanel pane = new JPanel();
-        pane.setPreferredSize(new Dimension(CTL_PANE_WIDTH, 350));
+        pane.setPreferredSize(new Dimension(CTL_PANE_WIDTH, 400));
         pane.setBorder(BorderFactory.createTitledBorder("This Player"));
         pane.setLayout(new GridLayout(0, 2));
 
@@ -594,7 +603,7 @@ public class ActiveClient extends JFrame {
     }
 
     private JPanel buildRegPane() {
-        final JPanel pane = initControlPane("Registration", 80);
+        final JPanel pane = initControlPane("Registration", 100);
 
         // button ident
         btnId = new JButton("Ident");
@@ -669,7 +678,7 @@ public class ActiveClient extends JFrame {
     }
 
     private JPanel buildResoursePane() {
-        final JPanel pane = initControlPane("Resource", 100);
+        final JPanel pane = initControlPane("Resource", 120);
 
         btnSynth = new JButton("Synthesize:");
         btnSynth.addActionListener(new ActionListener() {
@@ -722,7 +731,7 @@ public class ActiveClient extends JFrame {
     }
 
     private JPanel buildWarPane() {
-        final JPanel pane = initControlPane("War", 100);
+        final JPanel pane = initControlPane("War", 80);
 
         cbWarTargetId = new JComboBox<String>();
         pane.add(cbWarTargetId);
