@@ -18,6 +18,8 @@ import uc.ap.war.core.crypto.KarnBufferedReader;
 import uc.ap.war.core.crypto.KarnPrintWriter;
 import uc.ap.war.core.ex.NoPlayerIdException;
 import uc.ap.war.core.ex.SecurityServiceException;
+import uc.ap.war.core.ex.WarSecurityException;
+import uc.ap.war.core.ex.WrongPwChecksumException;
 import uc.ap.war.core.model.WarPlayer;
 import uc.ap.war.core.protocol.CmdHelper;
 import uc.ap.war.core.protocol.ProtoKw;
@@ -161,13 +163,10 @@ public class WarMonitorProxy {
     }
 
     public void dispatchMonitorDirectives() throws IOException,
-            NoPlayerIdException, SecurityServiceException {
+            NoPlayerIdException, SecurityServiceException, WarSecurityException {
         for (MsgGroup mg = nextMsgGroup(); mg != null; mg = nextMsgGroup()) {
 
             switch (mg.getResultArg()) {
-            case ProtoKw.CMD_CERT:
-                validateMonCert(mg);
-                break;
             case ProtoKw.CMD_PWD:
                 this.hdlr.resultPwd(mg);
                 break;
@@ -229,7 +228,7 @@ public class WarMonitorProxy {
         }
     }
 
-    private MsgGroup nextMsgGroup() throws IOException {
+    private MsgGroup nextMsgGroup() throws IOException, WarSecurityException {
         final MsgGroup mg = new MsgGroup();
         String directive = io.readDirective();
         while (true) {
@@ -244,14 +243,38 @@ public class WarMonitorProxy {
             }
             if (mg.getResultArg().equals(ProtoKw.CMD_ID)
                     && !mg.getResultStr().equals("")) {
-                setupKarnChannel(mg.getResultStr());
+                switchToKarnChannel(mg.getResultStr());
+            } else if (mg.getResultArg().equals(ProtoKw.CMD_CERT)) {
+                validateMonCert(mg.getResultStr());
+            } else if (!mg.getPwCheckSum().equals("")) {
+                // pw checksum provided, use it to authenticate monitor
+                authenticateMonitor(mg.getPwCheckSum());
             }
             directive = io.readDirective();
         }
         return mg;
     }
 
-    private void setupKarnChannel(final String resultStr) {
+    private void authenticateMonitor(final String pwCheckSum)
+            throws WarSecurityException {
+        try {
+            final String myPw = WarPlayer.ins().getPw();
+            final MessageDigest mdsha = MessageDigest.getInstance("SHA-1");
+            mdsha.update(myPw.toUpperCase().getBytes());
+            final String myPwDigest = new BigInteger(1, mdsha.digest())
+                    .toString(16);
+            if (!myPwDigest.equals(pwCheckSum)) {
+                log.warn("unabled to authenticate monitor by password checksum.");
+                throw new WrongPwChecksumException();
+            } else {
+                log.info("monitor authenticated by password checksum.");
+            }
+        } catch (NoSuchAlgorithmException e) {
+            log.error(e);
+        }
+    }
+
+    private void switchToKarnChannel(final String resultStr) {
         try {
             log.debug("switching to karn channel with monitor half key: "
                     + resultStr);
@@ -261,9 +284,9 @@ public class WarMonitorProxy {
         }
     }
 
-    private void validateMonCert(final MsgGroup mg) {
+    private void validateMonCert(final String resultStr) {
         try {
-            final String monNum = mg.getResultStr().split("\\s+")[1];
+            final String monNum = resultStr.split("\\s+")[1];
             final MessageDigest mdsha = MessageDigest.getInstance("SHA-1");
             mdsha.update(cAdp.getMyPublicKeyExp().toByteArray());
             mdsha.update(cAdp.getMyPublicKeyMod().toByteArray());
@@ -314,10 +337,12 @@ public class WarMonitorProxy {
                         sharedSecret);
                 final PrintWriter karnOut = new KarnPrintWriter(out, true,
                         sharedSecret);
-                channelName = "Karn";
+                // don't start changing existing io channels until we've got
+                // both the karn in and out channels ready
                 in = karnIn;
                 out = karnOut;
-                log.debug("Swithed to karn channel successfully.");
+                channelName = "Karn";
+                log.debug("Swithed to karnanObject channel successfully.");
             } catch (NoSuchAlgorithmException e) {
                 log.error("failed switching to karn channel");
             }

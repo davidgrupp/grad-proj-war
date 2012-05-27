@@ -15,6 +15,7 @@ import uc.ap.war.core.WarMonitorProxy;
 import uc.ap.war.core.WarMonitorProxyLogger;
 import uc.ap.war.core.ex.NoPlayerIdException;
 import uc.ap.war.core.ex.SecurityServiceException;
+import uc.ap.war.core.ex.WarSecurityException;
 
 public class PassiveClient implements Runnable {
     private static final Logger log = Logger.getLogger(PassiveClient.class);
@@ -24,7 +25,8 @@ public class PassiveClient implements Runnable {
     private WarMonitorProxyLogger pLog;
     private DirectiveHandler hdlr;
 
-    public PassiveClient(final int port, final DirectiveHandler hdlr) throws IOException {
+    public PassiveClient(final int port, final DirectiveHandler hdlr)
+            throws IOException {
         this(port, hdlr, null);
     }
 
@@ -63,6 +65,14 @@ public class PassiveClient implements Runnable {
                         } catch (IOException | NoPlayerIdException
                                 | SecurityServiceException e) {
                             log.error(e);
+                        } catch (WarSecurityException e) {
+                            log.warn("Suspicious peer indicated by security exception, gonna close connection "
+                                    + e);
+                            try {
+                                inSock.close();
+                            } catch (IOException e1) {
+                                log.error(e1);
+                            }
                         }
                     }
                 }).start();

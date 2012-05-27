@@ -47,6 +47,7 @@ import uc.ap.war.core.ex.NoPlayerIdException;
 import uc.ap.war.core.ex.PlayerDataNotFoundException;
 import uc.ap.war.core.ex.SecurityServiceException;
 import uc.ap.war.core.ex.SecurityServiceNotReadyException;
+import uc.ap.war.core.ex.WarSecurityException;
 import uc.ap.war.core.model.WarInfo;
 import uc.ap.war.core.model.WarModelManager;
 import uc.ap.war.core.model.WarPlayer;
@@ -279,6 +280,12 @@ public class ActiveClient extends JFrame {
                             } catch (NoPlayerIdException | IOException
                                     | SecurityServiceException e) {
                                 log.error(e);
+                            } catch (WarSecurityException e) {
+                                // this should never happen for the active
+                                // client according to the protocol
+                                // specification
+                                taClientLog
+                                        .append("Suspicious peer indicated by security exception!!");
                             }
                         }
                     }).start();
