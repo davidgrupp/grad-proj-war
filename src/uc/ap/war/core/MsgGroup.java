@@ -10,7 +10,9 @@ public class MsgGroup {
     private String resultStr;
     private String cmdError;
     private String requiredCmd;
+    private String pwChecksum;
     private StringBuilder msgs;
+    private boolean done;
 
     /**
      * Prevent initiation by classes in other packages.
@@ -20,42 +22,21 @@ public class MsgGroup {
         resultStr = "";
         cmdError = "";
         requiredCmd = "";
+        pwChecksum = "";
+        done = false;
         msgs = new StringBuilder();
     }
 
-    /**
-     * Prevent change in state by classes in other packages.
-     */
-    boolean addMsg(final String msg) {
-        if (msg == null) {
-            return false;
-        }
-        if (msg.startsWith(ProtoKw.DIR_WAIT)) {
-            log.debug("WAITING directive encounted, end of message group.");
-            return false;
-        }
-        if (msg.startsWith(ProtoKw.DIR_RESULT)) {
-            final String[] tokens = msg.split("\\s+", 3);
-            final String arg = tokens[1];
-            if (arg.equals(ProtoKw.DIR_QUIT)) {
-                log.debug("End of transaction, parsing aborted.");
-                return false;
-            }
-            this.resultArg = arg;
-            if (tokens.length == 3) {
-                this.resultStr = tokens[2];
-            }
-        } else if (msg.startsWith(ProtoKw.DIR_CMD_ERR)) {
-            this.cmdError = msg.split("\\s+", 2)[1];
-        } else if (msg.startsWith(ProtoKw.DIR_REQ)) {
-            this.requiredCmd = msg.split("\\s+")[1];
-        }
-        this.msgs.append(msg).append("\n");
-        return true;
+    public String getCmdError() {
+        return cmdError;
     }
 
-    public String toString() {
-        return this.msgs.toString();
+    public String getPwCheckSum() {
+        return pwChecksum;
+    }
+
+    public String getRequiredCmd() {
+        return requiredCmd;
     }
 
     public String getResult() {
@@ -70,12 +51,53 @@ public class MsgGroup {
         return resultStr;
     }
 
-    public String getCmdError() {
-        return cmdError;
+    public String toString() {
+        return this.msgs.toString();
     }
 
-    public String getRequiredCmd() {
-        return requiredCmd;
+    /**
+     * Prevent change in state by classes in other packages.
+     * 
+     * @return True if end of message group is encountered. False if more
+     *         messages(directives) are expected.
+     */
+    boolean addMsg(final String msg) {
+        // FIXME: this method's logic is obscured and ugly, fix it if we have
+        // time
+        if (done) {
+            return true;
+        }
+        if (msg == null) {
+            done = true;
+            return true;
+        }
+        if (msg.startsWith(ProtoKw.DIR_WAIT)) {
+            log.debug("WAITING directive encounted, end of message group.");
+            done = true;
+            return true;
+        }
+        final String[] tokens = msg.split("\\s+", 3);
+        if (msg.startsWith(ProtoKw.DIR_RESULT) && tokens.length >= 2) {
+            final String arg = tokens[1];
+            this.resultArg = arg;
+            if (arg.equals(ProtoKw.DIR_QUIT)) {
+                log.debug("End of transaction, parsing aborted.");
+                done = true;
+                return true;
+            }
+            if (tokens.length == 3) {
+                this.resultStr = tokens[2];
+            }
+        } else if (msg.startsWith(ProtoKw.DIR_CMD_ERR) && tokens.length == 2) {
+            this.cmdError = tokens[1];
+        } else if (msg.startsWith(ProtoKw.DIR_REQ) && tokens.length == 2) {
+            this.requiredCmd = tokens[1];
+        } else if (msg.startsWith(ProtoKw.DIR_PW_CHECKSUM)
+                && tokens.length == 2) {
+            this.pwChecksum = tokens[1];
+        }
+        this.msgs.append(msg).append("\n");
+        return false;
     }
 
 }

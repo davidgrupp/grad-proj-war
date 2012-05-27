@@ -7,6 +7,7 @@ public final class ProtoKw {
     public static final String DIR_RESULT = "RESULT";
     public static final String DIR_CMD_ERR = "COMMAND_ERROR";
     public static final String DIR_QUIT = "QUIT";
+    public static final String DIR_PW_CHECKSUM = "PLAYER_PASSWORD_CHECKSUM";
 
     // command arguments
     public static final String CMD_ARG_ACCEPT = "ACCEPT";

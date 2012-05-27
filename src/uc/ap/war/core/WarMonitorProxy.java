@@ -25,13 +25,9 @@ import uc.ap.war.core.protocol.ProtoKw;
 public class WarMonitorProxy {
     private static final Logger log = Logger.getLogger(WarMonitorProxy.class);
     private WarMonitorProxyLogger pLog;
-    private BufferedReader in;
-    private PrintWriter out;
     private DirectiveHandler hdlr;
-    private MsgGroup lastMsgGroup;
     private CertMgrAdapter cAdp;
-    private KarnBufferedReader karnIn;
-    private KarnPrintWriter karnOut;
+    private IoChannel io;
 
     public WarMonitorProxy(final Reader monitorReader,
             final Writer monitorWriter, final DirectiveHandler cmdHandler)
@@ -44,8 +40,7 @@ public class WarMonitorProxy {
             final WarMonitorProxyLogger proxyLogger)
             throws UnknownHostException, IOException {
         this.cAdp = CertMgrAdapter.ins();
-        this.in = new BufferedReader(monitorReader);
-        this.out = new PrintWriter(monitorWriter, true);
+        this.io = new IoChannel(monitorReader, monitorWriter);
         this.hdlr = cmdHandler;
         if (proxyLogger == null) {
             // if no custom proxy logger is supplied, just log to the class
@@ -62,114 +57,112 @@ public class WarMonitorProxy {
     }
 
     public void cmdAlive() {
-        issueCmd(CmdHelper.alive(WarPlayer.ins().getCookie()));
+        io.issueCmd(CmdHelper.alive(WarPlayer.ins().getCookie()));
     }
 
     public void cmdCrackCookie(final String targetId, int compAmt) {
-        issueCmd(CmdHelper.crackCookie(targetId, compAmt));
+        io.issueCmd(CmdHelper.crackCookie(targetId, compAmt));
     }
 
     public void cmdCrackHostPort(final String targetId) {
-        issueCmd(CmdHelper.crackHostPort(targetId));
+        io.issueCmd(CmdHelper.crackHostPort(targetId));
     }
 
     public void cmdCrackStatus(final String targetId, int compAmt) {
-        issueCmd(CmdHelper.crackStatus(targetId, compAmt));
+        io.issueCmd(CmdHelper.crackStatus(targetId, compAmt));
     }
 
     public void cmdDeclareWar(final String targetId, final String host,
             final int port, final int weaponsAmt, final int vehiclesAmt) {
-        issueCmd(CmdHelper.declearWar(targetId, host, port, weaponsAmt,
+        io.issueCmd(CmdHelper.declearWar(targetId, host, port, weaponsAmt,
                 vehiclesAmt));
     }
 
     public void cmdDefendWar(int resourceAmt) {
-        issueCmd(CmdHelper.defendWar(resourceAmt, resourceAmt));
+        io.issueCmd(CmdHelper.defendWar(resourceAmt, resourceAmt));
     }
 
     public void cmdGameIdents() {
-        issueCmd(CmdHelper.gameIdents());
+        io.issueCmd(CmdHelper.gameIdents());
     }
 
     public void cmdHostPort() {
-        issueCmd(CmdHelper.hostPort(WarPlayer.ins().getHost(), WarPlayer.ins()
-                .getPort()));
+        io.issueCmd(CmdHelper.hostPort(WarPlayer.ins().getHost(), WarPlayer
+                .ins().getPort()));
     }
 
     public void cmdIdent() throws NoPlayerIdException, SecurityServiceException {
         if (cAdp.karnReady()) {
             cmdIdentWithCrypto();
         } else {
-            issueCmd(CmdHelper.ident(WarPlayer.ins().getId()));
+            io.issueCmd(CmdHelper.ident(WarPlayer.ins().getId()));
         }
     }
 
     public void cmdIdentWithCrypto() throws NoPlayerIdException,
             SecurityServiceException {
-        issueCmd(CmdHelper.ident(WarPlayer.ins().getId(), cAdp.getMyHalfStr()));
+        io.issueCmd(CmdHelper.ident(WarPlayer.ins().getId(),
+                cAdp.getMyHalfStr()));
     }
 
     public void cmdMakeCert() throws SecurityServiceException {
         final String myPubExp = cAdp.getMyPublicKeyExpStr();
         final String myPubMod = cAdp.getMyPublicKeyModStr();
-        issueCmd(CmdHelper.makeCert(myPubExp, myPubMod));
+        io.issueCmd(CmdHelper.makeCert(myPubExp, myPubMod));
     }
 
     public void cmdPlayerStatus() {
-        issueCmd(CmdHelper.playerStatus());
+        io.issueCmd(CmdHelper.playerStatus());
     }
 
     public void cmdPwd() {
-        issueCmd(CmdHelper.pwd(WarPlayer.ins().getPw()));
+        io.issueCmd(CmdHelper.pwd(WarPlayer.ins().getPw()));
     }
 
     public void cmdQuit() {
-        issueCmd(CmdHelper.quit());
+        io.issueCmd(CmdHelper.quit());
     }
 
     public void cmdRandomPlayerHp() {
-        issueCmd(CmdHelper.randomPlayerHp());
+        io.issueCmd(CmdHelper.randomPlayerHp());
     }
 
     public void cmdSignOff() {
-        issueCmd(ProtoKw.CMD_SIGN_OFF);
+        io.issueCmd(ProtoKw.CMD_SIGN_OFF);
     }
 
     public void cmdSynth(final String resource) {
-        issueCmd(CmdHelper.synth() + " " + resource);
+        io.issueCmd(CmdHelper.synth() + " " + resource);
     }
 
     public void cmdTradeAccepted() {
-        issueCmd(CmdHelper.tradeAccepted());
+        io.issueCmd(CmdHelper.tradeAccepted());
     }
 
     public void cmdTradeDeclined() {
-        issueCmd(CmdHelper.tradeDeclined());
+        io.issueCmd(CmdHelper.tradeDeclined());
     }
 
     public void cmdTradeReq(String myRes, String myResAmt, String targetId,
             String forRes, String forResAmt) throws NoPlayerIdException {
-        issueCmd(CmdHelper.tradeReq(WarPlayer.ins().getId(), myRes, myResAmt,
-                targetId, forRes, forResAmt));
+        io.issueCmd(CmdHelper.tradeReq(WarPlayer.ins().getId(), myRes,
+                myResAmt, targetId, forRes, forResAmt));
     }
 
     public void cmdWarStatus(final String warTargetId) {
-        issueCmd(CmdHelper.warStatus(warTargetId));
+        io.issueCmd(CmdHelper.warStatus(warTargetId));
     }
 
     public void cmdWarTruce(String id, int rupy, int comp, int weap, int vehi,
             int steel, int copper, int oil, int glass, int plastic, int rubber)
             throws NoPlayerIdException {
-        issueCmd(CmdHelper.warTruce(WarPlayer.ins().getId(), id, rupy, comp,
+        io.issueCmd(CmdHelper.warTruce(WarPlayer.ins().getId(), id, rupy, comp,
                 weap, vehi, steel, copper, oil, glass, plastic, rubber));
     }
 
     public void dispatchMonitorDirectives() throws IOException,
             NoPlayerIdException, SecurityServiceException {
         for (MsgGroup mg = nextMsgGroup(); mg != null; mg = nextMsgGroup()) {
-            // lastMsgGroup = mg;
-            pLog.log("[" + new Date() + "]\n");
-            pLog.log(mg.toString() + "\n");
 
             switch (mg.getResultArg()) {
             case ProtoKw.CMD_CERT:
@@ -202,7 +195,7 @@ public class WarMonitorProxy {
             case ProtoKw.CMD_MAKE_CERT:
                 this.hdlr.resultMakeCert(mg);
             default:
-                log.debug("unexpected result argument: " + mg.getResultArg());
+                log.debug("uninterested result argument: " + mg.getResultArg());
             }
 
             switch (mg.getRequiredCmd()) {
@@ -236,48 +229,35 @@ public class WarMonitorProxy {
         }
     }
 
-    public MsgGroup getLastMsgGroup() {
-        return this.lastMsgGroup;
-    }
-
-    private void issueCmd(final String cmd) {
-        if (karnOut != null) {
-            karnOut.println(cmd);
-        } else {
-            out.println(cmd);
-        }
-        pLog.log(cmd + "\n\n");
-    }
-
     private MsgGroup nextMsgGroup() throws IOException {
         final MsgGroup mg = new MsgGroup();
-        String directive = readDirective();
+        String directive = io.readDirective();
         while (true) {
             if (directive == null || directive.equals("")) {
                 log.debug("No incoming message, parsing aborted.");
                 return null;
             }
-            log.debug("DIRECTIVE: " + directive);
-            if (!mg.addMsg(directive)) {
+            if (mg.addMsg(directive)) {
+                log.debug("end of message ground encounted, done building.");
+                pLog.log("[" + new Date() + "]\n");
                 break;
             }
             if (mg.getResultArg().equals(ProtoKw.CMD_ID)
                     && !mg.getResultStr().equals("")) {
                 setupKarnChannel(mg.getResultStr());
             }
-            directive = readDirective();
+            directive = io.readDirective();
         }
-        lastMsgGroup = mg;
         return mg;
     }
 
-    private String readDirective() throws IOException {
-        if (karnIn != null) {
-            log.debug("reading from karn channel");
-            return karnIn.readLine();
-        } else {
-            log.debug("reading from unencrypted channel");
-            return in.readLine();
+    private void setupKarnChannel(final String resultStr) {
+        try {
+            log.debug("switching to karn channel with monitor half key: "
+                    + resultStr);
+            this.io.switchToKarn(cAdp.getShareKarnSecret(resultStr));
+        } catch (SecurityServiceException e) {
+            log.error("karn channel setup attempt failed: " + e);
         }
     }
 
@@ -302,20 +282,46 @@ public class WarMonitorProxy {
         }
     }
 
-    private void setupKarnChannel(final String resultStr) {
-        try {
-            if (karnIn == null && karnOut == null) {
-                log.debug("Gonna setup karn channel with monitor half key: "
-                        + resultStr);
-                final BigInteger sharedSecret = cAdp
-                        .getShareKarnSecret(resultStr);
-                karnIn = new KarnBufferedReader(in, sharedSecret);
-                karnOut = new KarnPrintWriter(out, true, sharedSecret);
-                log.debug("karn channel setup successfully.");
+    private class IoChannel {
+        BufferedReader in;
+        PrintWriter out;
+        String channelName = "";
+
+        IoChannel(final Reader r, final Writer w) {
+            in = new BufferedReader(r);
+            out = new PrintWriter(w, true);
+            channelName = "Plain";
+        }
+
+        void issueCmd(final String cmd) {
+            out.println(cmd);
+            final String channel = "[" + channelName + ":CMD] ";
+            log.debug(channel + cmd);
+            pLog.log("\n" + channel + cmd + "\n\n");
+        }
+
+        String readDirective() throws IOException {
+            final String dir = in.readLine();
+            final String channel = "[" + channelName + ":DIR] ";
+            log.debug(channel + dir);
+            pLog.log(channel + dir + "\n");
+            return dir;
+        }
+
+        void switchToKarn(final BigInteger sharedSecret) {
+            try {
+                final BufferedReader karnIn = new KarnBufferedReader(in,
+                        sharedSecret);
+                final PrintWriter karnOut = new KarnPrintWriter(out, true,
+                        sharedSecret);
+                channelName = "Karn";
+                in = karnIn;
+                out = karnOut;
+                log.debug("Swithed to karn channel successfully.");
+            } catch (NoSuchAlgorithmException e) {
+                log.error("failed switching to karn channel");
             }
-        } catch (NoSuchAlgorithmException | SecurityServiceException e) {
-            log.error(e);
-            log.debug("karn channel setup failed.");
         }
     }
+
 }
