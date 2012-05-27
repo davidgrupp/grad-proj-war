@@ -6,6 +6,13 @@ public class CmdHelper {
         return ProtoKw.CMD_ALIVE + " " + cookie;
     }
 
+    public static String changePwd(final String oldPwd, final String newPwd) {
+        final StringBuilder cmd = new StringBuilder(ProtoKw.CMD_CHANGE_PWD);
+        cmd.append(" ").append(oldPwd);
+        cmd.append(" ").append(newPwd);
+        return cmd.toString();
+    }
+
     public static String crackCookie(final String targetId, int compAmt) {
         final StringBuilder cmd = new StringBuilder(ProtoKw.CMD_CRACK_COOKIE);
         cmd.append(" ").append(targetId);
@@ -47,7 +54,7 @@ public class CmdHelper {
     }
 
     public static String hostPort(final String host, final int port) {
-        StringBuilder sb = new StringBuilder(ProtoKw.CMD_HP);
+        final StringBuilder sb = new StringBuilder(ProtoKw.CMD_HP);
         sb.append(" ").append(host).append(" ").append(port);
         return sb.toString();
     }

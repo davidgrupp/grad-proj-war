@@ -18,6 +18,7 @@ public final class ProtoKw {
     // commands
     public static final String CMD_ID = "IDENT";
     public static final String CMD_PWD = "PASSWORD";
+    public static final String CMD_CHANGE_PWD = "CHANGE_PASSWORD";
     public static final String CMD_HP = "HOST_PORT";
     public static final String CMD_ALIVE = "ALIVE";
     public static final String CMD_QUIT = "QUIT";

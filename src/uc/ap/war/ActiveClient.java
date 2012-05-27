@@ -345,6 +345,15 @@ public class ActiveClient extends JFrame {
         });
         pane.add(btnGameIdents);
 
+        final JButton btnChangePwd = new JButton("Change Password");
+        btnChangePwd.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                mon.cmdChangePwd();
+            }
+        });
+        pane.add(btnChangePwd);
+
         return pane;
     }
 
@@ -605,8 +614,8 @@ public class ActiveClient extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try {
-                    WarModelManager.storePlayer(tfMyId.getText());
-                } catch (IOException ex) {
+                    WarModelManager.storePlayer();
+                } catch (IOException | NoPlayerIdException ex) {
                     log.debug(ex);
                     taClientLog.append(ex.toString());
                 }

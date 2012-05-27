@@ -9,22 +9,22 @@ import java.io.ObjectOutputStream;
 
 import org.apache.log4j.Logger;
 
+import uc.ap.war.core.ex.NoPlayerIdException;
 import uc.ap.war.core.ex.PlayerDataNotFoundException;
 
 public class WarModelManager {
     private static final Logger log = Logger.getLogger(WarModelManager.class);
     private static final String DEFAULT_ID = "default";
 
-    public static void storePlayer(final String playerId) throws IOException {
-        FileOutputStream fOut = new FileOutputStream(dataFile(playerId));
-        ObjectOutputStream out = new ObjectOutputStream(fOut);
-        out.writeObject(WarPlayer.INS);
-        out.close();
-        fOut.close();
-    }
-
-    public static void storePlayer() throws IOException {
-        storePlayer(DEFAULT_ID);
+    public static void storePlayer() throws IOException, NoPlayerIdException {
+        synchronized (WarPlayer.INS) {
+            FileOutputStream fOut = new FileOutputStream(
+                    dataFile(WarPlayer.INS.getId()));
+            ObjectOutputStream out = new ObjectOutputStream(fOut);
+            out.writeObject(WarPlayer.INS);
+            out.close();
+            fOut.close();
+        }
     }
 
     public static void loadPlayer(final String playerId)

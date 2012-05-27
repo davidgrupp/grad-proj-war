@@ -62,6 +62,11 @@ public class WarMonitorProxy {
         io.issueCmd(CmdHelper.alive(WarPlayer.ins().getCookie()));
     }
 
+    public void cmdChangePwd() {
+        io.issueCmd(CmdHelper.changePwd(WarPlayer.ins().getPw(), WarPlayer
+                .ins().genNewPw()));
+    }
+
     public void cmdCrackCookie(final String targetId, int compAmt) {
         io.issueCmd(CmdHelper.crackCookie(targetId, compAmt));
     }
@@ -193,6 +198,10 @@ public class WarMonitorProxy {
                 break;
             case ProtoKw.CMD_MAKE_CERT:
                 this.hdlr.resultMakeCert(mg);
+                break;
+            case ProtoKw.CMD_CHANGE_PWD:
+                this.hdlr.resultChanePwd(mg);
+                break;
             default:
                 log.debug("uninterested result argument: " + mg.getResultArg());
             }
@@ -228,6 +237,25 @@ public class WarMonitorProxy {
         }
     }
 
+    private void authenticateMonitor(final String pwCheckSum)
+            throws WarSecurityException {
+        try {
+            final String myPw = WarPlayer.ins().getPw();
+            final MessageDigest mdsha = MessageDigest.getInstance("SHA-1");
+            mdsha.update(myPw.toUpperCase().getBytes());
+            final String myPwDigest = new BigInteger(1, mdsha.digest())
+                    .toString(16);
+            if (!myPwDigest.equals(pwCheckSum)) {
+                log.warn("unabled to authenticate monitor by password checksum.");
+                throw new WrongPwChecksumException();
+            } else {
+                log.info("monitor authenticated by password checksum.");
+            }
+        } catch (NoSuchAlgorithmException e) {
+            log.error(e);
+        }
+    }
+
     private MsgGroup nextMsgGroup() throws IOException, WarSecurityException {
         final MsgGroup mg = new MsgGroup();
         String directive = io.readDirective();
@@ -253,25 +281,6 @@ public class WarMonitorProxy {
             directive = io.readDirective();
         }
         return mg;
-    }
-
-    private void authenticateMonitor(final String pwCheckSum)
-            throws WarSecurityException {
-        try {
-            final String myPw = WarPlayer.ins().getPw();
-            final MessageDigest mdsha = MessageDigest.getInstance("SHA-1");
-            mdsha.update(myPw.toUpperCase().getBytes());
-            final String myPwDigest = new BigInteger(1, mdsha.digest())
-                    .toString(16);
-            if (!myPwDigest.equals(pwCheckSum)) {
-                log.warn("unabled to authenticate monitor by password checksum.");
-                throw new WrongPwChecksumException();
-            } else {
-                log.info("monitor authenticated by password checksum.");
-            }
-        } catch (NoSuchAlgorithmException e) {
-            log.error(e);
-        }
     }
 
     private void switchToKarnChannel(final String resultStr) {
@@ -342,7 +351,7 @@ public class WarMonitorProxy {
                 in = karnIn;
                 out = karnOut;
                 channelName = "Karn";
-                log.debug("Swithed to karnanObject channel successfully.");
+                log.debug("Swithed to karn channel successfully.");
             } catch (NoSuchAlgorithmException e) {
                 log.error("failed switching to karn channel");
             }

@@ -1,5 +1,7 @@
 package uc.ap.war.core.model;
 
+import java.math.BigInteger;
+import java.security.SecureRandom;
 import java.util.HashMap;
 
 import org.apache.log4j.Logger;
@@ -33,8 +35,20 @@ public final class WarPlayer implements java.io.Serializable {
         }
     }
 
-    public void genNewPw() {
-        // todo: generate random new pwd
+    public void activateNewPwd() {
+        synchronized (pwd) {
+            pwd = newPwd;
+        }
+        log.info("password changed to " + pwd);
+    }
+
+    public String genNewPw() {
+        final String newPwdStr = new BigInteger(256, new SecureRandom())
+                .toString(64);
+        synchronized (newPwd) {
+            newPwd = newPwdStr;
+        }
+        return newPwd;
     }
 
     public int getComputers() {
@@ -62,10 +76,6 @@ public final class WarPlayer implements java.io.Serializable {
             throw new NoPlayerIdException();
         }
         return id;
-    }
-
-    public String getNewPw() {
-        return newPwd;
     }
 
     public int getOil() {

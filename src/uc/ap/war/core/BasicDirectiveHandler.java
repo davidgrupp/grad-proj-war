@@ -1,11 +1,13 @@
 package uc.ap.war.core;
 
+import java.io.IOException;
 import java.util.HashMap;
 
 import org.apache.log4j.Logger;
 
 import uc.ap.war.core.ex.NoPlayerIdException;
 import uc.ap.war.core.ex.SecurityServiceException;
+import uc.ap.war.core.model.WarModelManager;
 import uc.ap.war.core.model.WarPlayer;
 import uc.ap.war.core.protocol.DirectiveHelper;
 
@@ -53,6 +55,15 @@ public class BasicDirectiveHandler implements DirectiveHandler {
     }
 
     @Override
+    public void resultChanePwd(MsgGroup mg) throws NoPlayerIdException,
+            IOException {
+        log.debug("got new monitor cookie: " + mg.getResultStr());
+        WarPlayer.ins().setCookie(mg.getResultStr());
+        WarPlayer.ins().activateNewPwd();
+        WarModelManager.storePlayer();
+    }
+
+    @Override
     public void resultCrackCookie(final MsgGroup mg) {
 
     }
@@ -86,9 +97,11 @@ public class BasicDirectiveHandler implements DirectiveHandler {
     }
 
     @Override
-    public void resultPwd(final MsgGroup mg) {
+    public void resultPwd(final MsgGroup mg) throws NoPlayerIdException,
+            IOException {
         log.debug("got monitor cookie: " + mg.getResultStr());
         WarPlayer.ins().setCookie(mg.getResultStr());
+        WarModelManager.storePlayer();
     }
 
     @Override
